@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { signUp, signIn, initialized, loading } = useAuth();
+  const { signUp, signIn, initialized, loading, userRole } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,8 +27,12 @@ function AuthPage() {
         if (error) {
           setError(error.message);
         } else {
-          // Перенаправляємо на основі наявності компанії
-          navigate(userHasCompany ? '/dashboard' : '/setup');
+          // Перенаправляємо на основі наявності компанії та ролі
+          if (userHasCompany) {
+            navigate(userRole === 'admin' ? '/dashboard' : '/support');
+          } else {
+            navigate('/setup');
+          }
         }
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.name);

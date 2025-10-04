@@ -1,5 +1,5 @@
 import supabase from './supabase';
-import type { Company, UserCompanyWithCompany } from '@/types';
+import type { Company, UserCompanyWithCompany, UserRole } from '@/types';
 
 export const companyService = {
   // Отримати компанії користувача з джойном
@@ -102,6 +102,30 @@ export const companyService = {
       return userCompanies.length > 0 ? userCompanies[0] : null;
     } catch (error) {
       console.error('Error getting first user company:', error);
+      return null;
+    }
+  },
+
+  // Отримати роль користувача
+  getUserRole(roleId: number): UserRole {
+    return roleId === 1 ? 'admin' : 'support';
+  },
+
+  // Перевірити чи користувач адміністратор
+  isAdmin(roleId: number): boolean {
+    return roleId === 1;
+  },
+
+  // Отримати роль поточної компанії користувача
+  async getUserRoleForCompany(userId: string): Promise<UserRole | null> {
+    try {
+      const userCompanies = await this.getUserCompanies(userId);
+      if (userCompanies.length > 0) {
+        return this.getUserRole(userCompanies[0].role_id);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting user role:', error);
       return null;
     }
   },

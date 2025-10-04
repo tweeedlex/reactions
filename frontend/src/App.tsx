@@ -1,35 +1,41 @@
 import { Routes, Route } from 'react-router-dom';
 import { HomePage, Dashboard, SupportPage, AuthPage, BrandSetupPage, SubscriptionPage } from './pages';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
+import { SupportRoute } from './components/SupportRoute';
 
 function App() {
     return (
         <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/setup" element={<BrandSetupPage />} />
+            <Route path="/setup" element={
+                <ProtectedRoute>
+                    <BrandSetupPage />
+                </ProtectedRoute>
+            } />
             <Route
                 path="/dashboard"
                 element={
-                    <ProtectedRoute>
+                    <AdminRoute>
                         <Dashboard />
-                    </ProtectedRoute>
+                    </AdminRoute>
                 }
             />
             <Route
                 path="/support"
                 element={
-                    <ProtectedRoute>
+                    <SupportRoute>
                         <SupportPage />
-                    </ProtectedRoute>
+                    </SupportRoute>
                 }
             />
             <Route
                 path="/subscription"
                 element={
-                    <ProtectedRoute>
+                    <AdminRoute>
                         <SubscriptionPage />
-                    </ProtectedRoute>
+                    </AdminRoute>
                 }
             />
         </Routes>

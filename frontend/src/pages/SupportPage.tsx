@@ -4,9 +4,11 @@ import { ArrowLeft, MessageSquare, Clock } from 'lucide-react';
 import type { Comment } from '@/types';
 import { mockComments } from '@/utils/mockData';
 import { CommentCard, ResponseConstructor } from '@/components/support';
+import { useAuth } from '@/contexts/AuthContext';
 
 function SupportPage() {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
+  const { userRole } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -16,11 +18,11 @@ function SupportPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
               <Link
-                to="/dashboard"
+                to={userRole === 'admin' ? "/dashboard" : "/"}
                 className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                Назад до дашборду
+                {userRole === 'admin' ? "Назад до дашборду" : "Назад на головну"}
               </Link>
               <div className="flex items-center gap-3 ml-8">
                 <MessageSquare className="w-8 h-8 text-purple-400" />

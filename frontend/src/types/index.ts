@@ -145,8 +145,21 @@ export interface UserCompany {
   role_id: number;
 }
 
+// Ролі користувачів
+export type UserRole = 'admin' | 'support';
+
+export const USER_ROLES = {
+  ADMIN: 1,
+  SUPPORT: 2,
+} as const;
+
 export interface UserCompanyWithCompany extends UserCompany {
   company: Company;
+}
+
+// Додаємо роль до інтерфейсу
+export interface UserCompanyWithRole extends UserCompanyWithCompany {
+  role: UserRole;
 }
 
 // Company state for Redux
@@ -154,6 +167,7 @@ export interface CompanyState {
   companies: Company[];
   userCompanies: UserCompanyWithCompany[];
   currentCompany: Company | null;
+  currentUserRole: UserRole | null;
   loading: boolean;
   error: string | null;
 }

@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import supabase from '@/utils/supabase';
-import type { Company, UserCompanyWithCompany, CompanyState } from '@/types';
+import type { Company, UserCompanyWithCompany, CompanyState, UserRole } from '@/types';
+import { companyService } from '@/utils/companyService';
 
 // Async thunks
 export const fetchUserCompanies = createAsyncThunk(
@@ -66,6 +67,7 @@ const initialState: CompanyState = {
   companies: [],
   userCompanies: [],
   currentCompany: null,
+  currentUserRole: null,
   loading: false,
   error: null,
 };
@@ -77,6 +79,9 @@ const companySlice = createSlice({
     setCurrentCompany: (state, action: PayloadAction<Company | null>) => {
       state.currentCompany = action.payload;
     },
+    setCurrentUserRole: (state, action: PayloadAction<UserRole | null>) => {
+      state.currentUserRole = action.payload;
+    },
     clearError: (state) => {
       state.error = null;
     },
@@ -84,6 +89,7 @@ const companySlice = createSlice({
       state.companies = [];
       state.userCompanies = [];
       state.currentCompany = null;
+      state.currentUserRole = null;
       state.error = null;
     },
   },
@@ -100,6 +106,8 @@ const companySlice = createSlice({
         // Set first company as current if exists
         if (action.payload.length > 0 && !state.currentCompany) {
           state.currentCompany = action.payload[0].company;
+          // Set user role
+          state.currentUserRole = companyService.getUserRole(action.payload[0].role_id);
         }
       })
       .addCase(fetchUserCompanies.rejected, (state, action) => {
@@ -149,5 +157,5 @@ const companySlice = createSlice({
   },
 });
 
-export const { setCurrentCompany, clearError, clearCompanyData } = companySlice.actions;
+export const { setCurrentCompany, setCurrentUserRole, clearError, clearCompanyData } = companySlice.actions;
 export default companySlice.reducer;

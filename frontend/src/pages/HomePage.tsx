@@ -4,7 +4,7 @@ import { Navbar, Footer } from '@/components/layout';
 import { useAuth } from '@/contexts/AuthContext';
 
 function HomePage() {
-    const { user, loading, initialized, hasCompany } = useAuth();
+    const { user, loading, initialized, hasCompany, userRole } = useAuth();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -31,10 +31,10 @@ function HomePage() {
                         {initialized && !loading && user ? (
                             // Якщо користувач залогінений
                             <Link
-                                to={hasCompany ? "/dashboard" : "/setup"}
+                                to={hasCompany ? (userRole === 'admin' ? "/dashboard" : "/support") : "/setup"}
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
                             >
-                                {hasCompany ? "Перейти до дашборду" : "Завершити налаштування"}
+                                {hasCompany ? (userRole === 'admin' ? "Перейти до дашборду" : "Перейти до сапорту") : "Завершити налаштування"}
                             </Link>
                         ) : (
                             // Якщо користувач не залогінений

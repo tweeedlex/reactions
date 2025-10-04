@@ -6,7 +6,8 @@ import { mockBillingHistory } from '@/utils/mockData';
 import { companyService } from '@/utils/companyService';
 import type { UserData } from '@/types';
 import { useAppDispatch } from '@/store/hooks';
-import { fetchUserCompanies, clearCompanyData } from '@/store/slices/companySlice';
+import { fetchUserCompanies, clearCompanyData, setCurrentUserRole } from '@/store/slices/companySlice';
+import type { UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -14,8 +15,9 @@ interface AuthContextType {
   loading: boolean;
   initialized: boolean;
   hasCompany: boolean;
+  userRole: UserRole | null;
   signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null; hasCompany?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null; hasCompany?: boolean; userRole?: UserRole }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: { name?: string }) => Promise<{ error: AuthError | null }>;
   refreshCompanyStatus: () => Promise<void>;
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Відновлюємо стан з localStorage при ініціалізації
     return getCompanyStatus() ?? false;
   });
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const dispatch = useAppDispatch();
 
   // Функція для перевірки та завантаження компаній користувача
@@ -48,10 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setHasCompany(hasCompanies);
       saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
       
-      if (hasCompanies) {
-        // Завантажуємо дані компаній в Redux
-        dispatch(fetchUserCompanies(userId));
-      }
+        if (hasCompanies) {
+          // Завантажуємо дані компаній в Redux
+          const userCompanies = await dispatch(fetchUserCompanies(userId)).unwrap();
+          // Встановлюємо роль користувача
+          if (userCompanies.length > 0) {
+            const role = companyService.getUserRole(userCompanies[0].role_id);
+            setUserRole(role);
+            dispatch(setCurrentUserRole(role));
+          }
+        }
     } catch (error) {
       // Мовчазно встановлюємо false для відсутніх таблиць
       if (error instanceof Error && error.message === 'Timeout') {
@@ -209,9 +218,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const session = await supabase.auth.getSession();
         if (session.data.session?.user) {
           const hasCompanies = await companyService.hasUserCompanies(session.data.session.user.id);
-        setHasCompany(hasCompanies);
-        saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
-        return { error: null, hasCompany: hasCompanies };
+          setHasCompany(hasCompanies);
+          saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
+          
+          // Отримуємо роль користувача
+          let userRole: UserRole | null = null;
+          if (hasCompanies) {
+            userRole = await companyService.getUserRoleForCompany(session.data.session.user.id);
+            setUserRole(userRole);
+          }
+          
+          return { error: null, hasCompany: hasCompanies, userRole: userRole || undefined };
         }
       } catch (err) {
         console.error('Error checking companies after sign in:', err);
@@ -271,6 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     initialized,
     hasCompany,
+    userRole,
     signUp,
     signIn,
     signOut,
