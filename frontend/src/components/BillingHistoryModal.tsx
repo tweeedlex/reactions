@@ -18,7 +18,18 @@ function BillingHistoryModal({ isOpen, onClose }: BillingHistoryModalProps) {
       const stats = getMonthlyStats();
       setBillingHistory(history);
       setMonthlyStats(stats);
+      
+      // Блокуємо скрол body
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Відновлюємо скрол body
+      document.body.style.overflow = 'unset';
     }
+    
+    // Cleanup при unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   const getTypeIcon = (type: string) => {
