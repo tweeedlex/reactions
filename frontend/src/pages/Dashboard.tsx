@@ -16,6 +16,7 @@ import {
   TrendingDown,
   Settings,
   Crown,
+  Coins,
 } from 'lucide-react';
 import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
 import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
@@ -25,6 +26,9 @@ function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const data = mockDashboardData;
+  
+  // Хардкоджений баланс токенів
+  const tokenBalance = 1000;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -39,23 +43,17 @@ function Dashboard() {
               </Link>
               <div className="flex items-center gap-3 ml-8">
                 <Shield className="w-8 h-8 text-purple-400" />
-                <h1 className="text-2xl font-bold text-white">BrandDefender Dashboard</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="bg-slate-800 text-white px-3 py-1 rounded border border-purple-500/30"
-                >
-                  <option value="24h">Останні 24 години</option>
-                  <option value="7d">Останні 7 днів</option>
-                  <option value="30d">Останні 30 днів</option>
-                  <option value="90d">Останні 90 днів</option>
-                </select>
+              {/* Баланс токенів */}
+              <div className="flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-lg border border-purple-500/30">
+                <Coins className="w-5 h-5 text-yellow-400" />
+                <span className="text-sm font-medium text-white">
+                  {tokenBalance.toLocaleString()}
+                </span>
               </div>
+              
               <button
                 onClick={() => setIsFilterModalOpen(true)}
                 className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -87,6 +85,26 @@ function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Period Selector */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="bg-slate-800 text-white px-4 py-2 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
+              >
+                <option value="24h">Останні 24 години</option>
+                <option value="7d">Останні 7 днів</option>
+                <option value="30d">Останні 30 днів</option>
+                <option value="90d">Останні 90 днів</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard
