@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase';
-import { saveUserData, clearUserData, getUserData, updateUserProfile } from '@/utils/localStorage';
+import { saveUserData, clearUserData, getUserData, updateUserProfile, saveCompanyStatus, getCompanyStatus, clearCompanyStatus } from '@/utils/localStorage';
 import { mockBillingHistory } from '@/utils/mockData';
 import { companyService } from '@/utils/companyService';
 import type { UserData } from '@/types';
@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  initialized: boolean;
   hasCompany: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null; hasCompany?: boolean }>;
@@ -26,7 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasCompany, setHasCompany] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [hasCompany, setHasCompany] = useState(() => {
+    // Відновлюємо стан з localStorage при ініціалізації
+    return getCompanyStatus() ?? false;
+  });
   const dispatch = useAppDispatch();
 
   // Функція для перевірки та завантаження компаній користувача
@@ -34,13 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Додаємо таймаут для запобігання нескінченного завантаження
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
+        setTimeout(() => reject(new Error('Timeout')), 10000)
       );
       
       const hasCompaniesPromise = companyService.hasUserCompanies(userId);
       const hasCompanies = await Promise.race([hasCompaniesPromise, timeoutPromise]) as boolean;
       
       setHasCompany(hasCompanies);
+      saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
       
       if (hasCompanies) {
         // Завантажуємо дані компаній в Redux
@@ -49,11 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // Мовчазно встановлюємо false для відсутніх таблиць
       if (error instanceof Error && error.message === 'Timeout') {
-        console.warn('Company check timeout - tables may not exist, setting hasCompany to false');
+        console.warn('Company check timeout - tables may not exist, keeping current state');
+        // Не змінюємо hasCompany при таймауті, залишаємо поточний стан
+        return;
       } else {
         console.error('Error checking user companies:', error);
+        setHasCompany(false);
+        saveCompanyStatus(false); // Зберігаємо в localStorage
       }
-      setHasCompany(false);
     }
   };
 
@@ -62,28 +71,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initTimeout = setTimeout(() => {
       console.warn('Auth initialization timeout, setting loading to false');
       setLoading(false);
+      setInitialized(true);
     }, 10000); // 10 секунд максимум
 
     // Отримуємо поточну сесію
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('🔍 AuthContext: Getting session...', { hasSession: !!session, hasUser: !!session?.user });
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('👤 AuthContext: User found, checking companies...', session.user.id);
         try {
           await checkUserCompanies(session.user.id);
+          console.log('✅ AuthContext: Company check completed');
         } catch (error) {
-          console.error('Error in checkUserCompanies:', error);
+          console.error('❌ AuthContext: Error in checkUserCompanies:', error);
           setHasCompany(false);
+          saveCompanyStatus(false);
         }
+      } else {
+        console.log('🚫 AuthContext: No user, setting hasCompany to false');
+        setHasCompany(false);
+        saveCompanyStatus(false);
       }
       
+      console.log('🏁 AuthContext: Initialization completed', { hasCompany: getCompanyStatus() });
       clearTimeout(initTimeout);
       setLoading(false);
+      setInitialized(true);
     }).catch((error) => {
-      console.error('Error getting session:', error);
+      console.error('❌ AuthContext: Error getting session:', error);
+      setHasCompany(false);
+      saveCompanyStatus(false);
       clearTimeout(initTimeout);
       setLoading(false);
+      setInitialized(true);
     });
 
     // Слухаємо зміни авторизації
@@ -146,10 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // При виході очищуємо дані
         clearUserData();
         setHasCompany(false);
+        clearCompanyStatus(); // Очищуємо localStorage
         dispatch(clearCompanyData());
       }
       
       setLoading(false);
+      setInitialized(true);
     });
 
     return () => {
@@ -183,8 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const session = await supabase.auth.getSession();
         if (session.data.session?.user) {
           const hasCompanies = await companyService.hasUserCompanies(session.data.session.user.id);
-          setHasCompany(hasCompanies);
-          return { error: null, hasCompany: hasCompanies };
+        setHasCompany(hasCompanies);
+        saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
+        return { error: null, hasCompany: hasCompanies };
         }
       } catch (err) {
         console.error('Error checking companies after sign in:', err);
@@ -212,24 +239,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Додаємо таймаут для refresh
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 3000)
+          setTimeout(() => reject(new Error('Timeout')), 10000)
         );
         
         const hasCompaniesPromise = companyService.hasUserCompanies(user.id);
         const hasCompanies = await Promise.race([hasCompaniesPromise, timeoutPromise]) as boolean;
         
         setHasCompany(hasCompanies);
+        saveCompanyStatus(hasCompanies); // Зберігаємо в localStorage
         
         if (hasCompanies) {
           dispatch(fetchUserCompanies(user.id));
         }
       } catch (error) {
         if (error instanceof Error && error.message === 'Timeout') {
-          console.warn('Company refresh timeout - tables may not exist');
+          console.warn('Company refresh timeout - tables may not exist, keeping current state');
+          // Не змінюємо hasCompany при таймауті, залишаємо поточний стан
+          return;
         } else {
           console.error('Error refreshing company status:', error);
+          setHasCompany(false);
+          saveCompanyStatus(false); // Зберігаємо в localStorage
         }
-        setHasCompany(false);
       }
     }
   };
@@ -238,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    initialized,
     hasCompany,
     signUp,
     signIn,

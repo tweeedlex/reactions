@@ -231,3 +231,23 @@ export const getMonthlyStats = () => {
     records: monthlyRecords,
   };
 };
+
+// Функції для роботи зі станом компанії
+const COMPANY_STATUS_KEY = 'brand_defender_company_status';
+
+export const saveCompanyStatus = (hasCompany: boolean): void => {
+  localStorage.setItem(COMPANY_STATUS_KEY, JSON.stringify(hasCompany));
+};
+
+export const getCompanyStatus = (): boolean | null => {
+  try {
+    const status = localStorage.getItem(COMPANY_STATUS_KEY);
+    return status ? JSON.parse(status) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const clearCompanyStatus = (): void => {
+  localStorage.removeItem(COMPANY_STATUS_KEY);
+};

@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCompanyStatus } from '@/utils/localStorage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,10 +21,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
   
-  const { user, loading, hasCompany } = authContext;
+  const { user, loading, initialized, hasCompany } = authContext;
 
-  // Показуємо завантаження поки перевіряємо авторизацію
-  if (loading) {
+  console.log('🛡️ ProtectedRoute: State check', { 
+    loading, 
+    initialized, 
+    hasUser: !!user, 
+    hasCompany,
+    localStorageCompany: getCompanyStatus()
+  });
+
+  // Показуємо завантаження поки не завершиться ініціалізація
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -36,13 +45,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Якщо користувач не авторизований, перенаправляємо на сторінку авторизації
   if (!user) {
+    console.log('🛡️ ProtectedRoute: No user, redirecting to /auth');
     return <Navigate to="/auth" replace />;
   }
 
   // Якщо користувач авторизований, але не має компанії, перенаправляємо на налаштування
   if (!hasCompany) {
+    console.log('🛡️ ProtectedRoute: No company, redirecting to /setup');
     return <Navigate to="/setup" replace />;
   }
+
+  console.log('🛡️ ProtectedRoute: All checks passed, rendering children');
 
   return <>{children}</>;
 }

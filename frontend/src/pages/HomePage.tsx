@@ -4,7 +4,7 @@ import { Navbar, Footer } from '@/components/layout';
 import { useAuth } from '@/contexts/AuthContext';
 
 function HomePage() {
-    const { user, loading, hasCompany } = useAuth();
+    const { user, loading, initialized, hasCompany } = useAuth();
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -28,7 +28,7 @@ function HomePage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                        {!loading && user ? (
+                        {initialized && !loading && user ? (
                             // Якщо користувач залогінений
                             <Link
                                 to={hasCompany ? "/dashboard" : "/setup"}
@@ -265,7 +265,7 @@ function HomePage() {
                     <p className="text-xl text-purple-100 mb-8">
                         Приєднуйтесь до тисяч компаній, які довіряють BrandDefender
                     </p>
-                    {!loading && user ? (
+                    {initialized && !loading && user ? (
                         <Link
                             to={hasCompany ? "/dashboard" : "/setup"}
                             className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-2xl"

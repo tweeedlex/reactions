@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Building2, Tag, Globe, Check, ArrowRight, ArrowLeft, Link, ExternalLink } from 'lucide-react';
-import { getUserData, saveUserData, updateSourceLink, getSourceLink } from '@/utils/localStorage';
+import { getUserData, saveUserData, updateSourceLink, getSourceLink, saveCompanyStatus } from '@/utils/localStorage';
 import SetupSourceModal from '@/components/SetupSourceModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyCreation } from '@/hooks/useCompanyCreation';
@@ -116,6 +116,7 @@ function BrandSetupPage() {
 
       // Оновлюємо стан в AuthContext та перенаправляємо
       await refreshCompanyStatus();
+      saveCompanyStatus(true); // Зберігаємо в localStorage
       navigate('/dashboard');
     } catch (error) {
       console.error('Error during setup completion:', error);
@@ -136,6 +137,7 @@ function BrandSetupPage() {
 
         saveUserData(updatedData);
         await refreshCompanyStatus();
+        saveCompanyStatus(true); // Зберігаємо в localStorage
         navigate('/dashboard');
       }
     } finally {
