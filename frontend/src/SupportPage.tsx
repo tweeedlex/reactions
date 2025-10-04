@@ -8,14 +8,9 @@ import {
   AlertTriangle, 
   TrendingUp, 
   Clock, 
-  User, 
   Calendar,
   ExternalLink,
-  CheckCircle,
-  XCircle,
   Zap,
-  Shield,
-  Heart,
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
