@@ -1,4 +1,5 @@
-import type { UserData, SourceLink, Subscription } from '@/types';
+import type { UserData, SourceLink, Subscription, BillingRecord } from '@/types';
+import { mockBillingHistory } from './mockData';
 
 const USER_DATA_KEY = 'branddefender_user_data';
 
@@ -120,6 +121,9 @@ export const getSubscription = (): Subscription | null => {
     maxSources: 5,
     usedSources: 0,
     autoRenew: true,
+    billingHistory: mockBillingHistory,
+    totalSpent: mockBillingHistory.reduce((sum, record) => sum + record.cost, 0),
+    monthlyLimit: 100,
   };
   
   // Зберігаємо базову підписку
@@ -165,5 +169,51 @@ export const getSubscriptionStatus = () => {
     usedSources: subscription.usedSources,
     expiresAt: subscription.expiresAt,
     autoRenew: subscription.autoRenew,
+    billingHistory: subscription.billingHistory,
+    totalSpent: subscription.totalSpent,
+    monthlyLimit: subscription.monthlyLimit,
+  };
+};
+
+export const getBillingHistory = (): BillingRecord[] => {
+  const subscription = getSubscription();
+  if (subscription?.billingHistory && subscription.billingHistory.length > 0) {
+    return subscription.billingHistory;
+  }
+  
+  // Якщо історії немає, повертаємо мок-дані
+  return mockBillingHistory;
+};
+
+export const addBillingRecord = (record: Omit<BillingRecord, 'id'>): void => {
+  const data = getUserData();
+  if (data?.subscription) {
+    const newRecord: BillingRecord = {
+      ...record,
+      id: Date.now().toString(),
+    };
+    
+    data.subscription.billingHistory.unshift(newRecord);
+    data.subscription.totalSpent += record.cost;
+    saveUserData(data);
+  }
+};
+
+export const getMonthlyStats = () => {
+  const history = getBillingHistory();
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  
+  const monthlyRecords = history.filter(record => 
+    record.date.startsWith(currentMonth)
+  );
+  
+  const totalRequests = monthlyRecords.reduce((sum, record) => sum + record.requests, 0);
+  const totalCost = monthlyRecords.reduce((sum, record) => sum + record.cost, 0);
+  
+  return {
+    totalRequests,
+    totalCost,
+    recordCount: monthlyRecords.length,
+    records: monthlyRecords,
   };
 };

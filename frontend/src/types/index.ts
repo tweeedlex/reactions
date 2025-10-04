@@ -97,6 +97,15 @@ export interface BrandSetup {
   saasPoints: number;
 }
 
+export interface BillingRecord {
+  id: string;
+  date: string;
+  requests: number;
+  cost: number;
+  description: string;
+  type: 'parsing' | 'api' | 'export' | 'premium_feature';
+}
+
 export interface Subscription {
   isActive: boolean;
   plan: 'free' | 'basic' | 'pro' | 'enterprise';
@@ -105,6 +114,9 @@ export interface Subscription {
   usedSources: number;
   expiresAt?: string;
   autoRenew: boolean;
+  billingHistory: BillingRecord[];
+  totalSpent: number;
+  monthlyLimit: number;
 }
 
 export interface UserData {

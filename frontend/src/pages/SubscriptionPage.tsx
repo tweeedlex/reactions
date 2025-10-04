@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building } from 'lucide-react';
-import { getSubscriptionStatus, updateSubscription, toggleParsing } from '@/utils/localStorage';
+import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building, History, DollarSign } from 'lucide-react';
+import { getSubscriptionStatus, updateSubscription, toggleParsing, getMonthlyStats } from '@/utils/localStorage';
 import type { Subscription } from '@/types';
+import BillingHistoryModal from '@/components/BillingHistoryModal';
 
 const PLANS = [
   {
@@ -69,6 +70,8 @@ const PLANS = [
 function SubscriptionPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [monthlyStats, setMonthlyStats] = useState({ totalRequests: 0, totalCost: 0, recordCount: 0 });
 
   useEffect(() => {
     const subData = getSubscriptionStatus();
@@ -83,9 +86,17 @@ function SubscriptionPage() {
         maxSources: 5,
         usedSources: 0,
         autoRenew: true,
+        billingHistory: [],
+        totalSpent: 0,
+        monthlyLimit: 100,
       };
       setSubscription(defaultSub);
     }
+    
+    // Завантажуємо статистику за місяць
+    const stats = getMonthlyStats();
+    setMonthlyStats(stats);
+    
     setLoading(false);
   }, []);
 
@@ -228,6 +239,13 @@ function SubscriptionPage() {
                   {subscription.usedSources} / {subscription.maxSources === 999 ? '∞' : subscription.maxSources}
                 </p>
                 <p className="text-gray-400 text-sm">Джерел підключено</p>
+                <button
+                  onClick={() => setIsBillingModalOpen(true)}
+                  className="mt-3 w-full bg-slate-600/50 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  Історія запитів
+                </button>
               </div>
             </div>
           </div>
@@ -334,6 +352,12 @@ function SubscriptionPage() {
           </div>
         </div>
       </div>
+
+      {/* Billing History Modal */}
+      <BillingHistoryModal
+        isOpen={isBillingModalOpen}
+        onClose={() => setIsBillingModalOpen(false)}
+      />
     </div>
   );
 }

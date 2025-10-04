@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase';
 import { saveUserData, clearUserData, getUserData, updateUserProfile } from '@/utils/localStorage';
+import { mockBillingHistory } from '@/utils/mockData';
 import type { UserData } from '@/types';
 
 interface AuthContextType {
@@ -61,6 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               maxSources: 5,
               usedSources: 0,
               autoRenew: true,
+              billingHistory: mockBillingHistory,
+              totalSpent: mockBillingHistory.reduce((sum, record) => sum + record.cost, 0),
+              monthlyLimit: 100,
             },
             isOnboarded: false,
           };
