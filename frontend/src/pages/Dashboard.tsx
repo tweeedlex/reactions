@@ -36,7 +36,7 @@ function Dashboard() {
       'Facebook': 234,
       'Instagram': 178,
       'Reddit': 45,
-      'Quora': 23,
+      'Quора': 23,
       'Форуми': 22
     },
     intentClassification: {
