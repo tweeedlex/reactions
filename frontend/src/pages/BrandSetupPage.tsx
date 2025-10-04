@@ -26,6 +26,7 @@ function BrandSetupPage() {
   const { createCompanyWithUser } = useCompanyCreation();
   const [step, setStep] = useState(1);
   const [brandName, setBrandName] = useState('');
+  const [siteUrl, setSiteUrl] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
@@ -88,7 +89,7 @@ function BrandSetupPage() {
       // Створюємо компанію в Supabase
       const { error } = await createCompanyWithUser(user, {
         title: brandName,
-        site_url: '', // Поки що порожнє, можна додати поле для URL
+        site_url: siteUrl.trim() || '', // Використовуємо введене посилання або порожній рядок
       });
 
       if (error) {
@@ -194,16 +195,30 @@ function BrandSetupPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Назва бренду</label>
-                <input
-                  type="text"
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors text-lg"
-                  placeholder="Наприклад: TechStartup"
-                  autoFocus
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Назва бренду *</label>
+                  <input
+                    type="text"
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
+                    className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors text-lg"
+                    placeholder="Наприклад: TechStartup"
+                    autoFocus
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Посилання на сайт (опціонально)</label>
+                  <input
+                    type="url"
+                    value={siteUrl}
+                    onChange={(e) => setSiteUrl(e.target.value)}
+                    className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors text-lg"
+                    placeholder="https://example.com"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Додайте посилання на офіційний сайт вашого бренду</p>
+                </div>
               </div>
 
               <button
