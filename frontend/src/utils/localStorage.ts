@@ -110,6 +110,10 @@ export const getSourceLink = (sourceName: string): string | null => {
 export const getSubscription = (): Subscription | null => {
   const data = getUserData();
   if (data?.subscription) {
+    // Ensure parsingInterval exists for backward compatibility
+    if (!data.subscription.parsingInterval) {
+      data.subscription.parsingInterval = { days: 0, hours: 4, minutes: 0 };
+    }
     return data.subscription;
   }
   
@@ -124,6 +128,7 @@ export const getSubscription = (): Subscription | null => {
     billingHistory: mockBillingHistory,
     totalSpent: mockBillingHistory.reduce((sum, record) => sum + record.cost, 0),
     monthlyLimit: 100,
+    parsingInterval: { days: 0, hours: 4, minutes: 0 }, // Default: 4 hours
   };
   
   // Зберігаємо базову підписку
@@ -172,6 +177,7 @@ export const getSubscriptionStatus = () => {
     billingHistory: subscription.billingHistory,
     totalSpent: subscription.totalSpent,
     monthlyLimit: subscription.monthlyLimit,
+    parsingInterval: subscription.parsingInterval,
   };
 };
 
@@ -183,6 +189,14 @@ export const getBillingHistory = (): BillingRecord[] => {
   
   // Якщо історії немає, повертаємо мок-дані
   return mockBillingHistory;
+};
+
+export const updateParsingInterval = (interval: { days: number; hours: number; minutes: number }): void => {
+  const data = getUserData();
+  if (data?.subscription) {
+    data.subscription.parsingInterval = interval;
+    saveUserData(data);
+  }
 };
 
 export const addBillingRecord = (record: Omit<BillingRecord, 'id'>): void => {

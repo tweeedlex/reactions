@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock } from 'lucide-react';
 import type { Comment } from '@/types';
-import { mockComments, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
-import { CommentCard, AlertCard, ResponseConstructor, KeywordAlerts } from '@/components/support';
+import { mockComments } from '@/utils/mockData';
+import { CommentCard, ResponseConstructor } from '@/components/support';
 
 function SupportPage() {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
@@ -38,23 +38,7 @@ function SupportPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Early Warning System */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-            Система раннього попередження
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockAlerts.map((alert) => (
-              <AlertCard key={alert.id} alert={alert} />
-            ))}
-          </div>
-        </div>
 
-        {/* Keyword Alerts Section */}
-        <div className="mb-8">
-          <KeywordAlerts alerts={mockKeywordAlerts} />
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Comments Feed */}

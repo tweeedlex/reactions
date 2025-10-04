@@ -17,8 +17,9 @@ import {
   Settings,
   Crown,
 } from 'lucide-react';
-import { mockDashboardData } from '@/utils/mockData';
+import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
 import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
+import { AlertCard, KeywordAlerts } from '@/components/support';
 
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
@@ -95,6 +96,13 @@ function Dashboard() {
             icon={Shield}
             gradientFrom="purple-500"
             gradientTo="pink-500"
+            tooltipContent={
+              <div className="space-y-2">
+                <p className="font-bold">Формула розрахунку:</p>
+                <p>(Позитивні * 1) + (Нейтральні * 0.5) - (Негативні * 2)</p>
+                <p className="text-xs text-gray-400 pt-2 border-t border-slate-600">Це мокова формула для демонстрації. Реальний розрахунок може бути складнішим.</p>
+              </div>
+            }
           />
           <MetricCard
             title="Всього згадок"
@@ -120,6 +128,24 @@ function Dashboard() {
             gradientFrom="red-500"
             gradientTo="orange-500"
           />
+        </div>
+
+        {/* Early Warning System */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-red-400" />
+            Система раннього попередження
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {mockAlerts.map((alert) => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))}
+          </div>
+        </div>
+
+        {/* Keyword Alerts Section */}
+        <div className="mb-8">
+          <KeywordAlerts alerts={mockKeywordAlerts} />
         </div>
 
         {/* Charts Row */}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building, History, DollarSign } from 'lucide-react';
-import { getSubscriptionStatus, updateSubscription, toggleParsing, getMonthlyStats } from '@/utils/localStorage';
+import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building, History, DollarSign, Clock } from 'lucide-react';
+import { getSubscriptionStatus, updateSubscription, toggleParsing, getMonthlyStats, updateParsingInterval } from '@/utils/localStorage';
 import type { Subscription } from '@/types';
 import BillingHistoryModal from '@/components/BillingHistoryModal';
+import ParsingIntervalModal from '@/components/ParsingIntervalModal';
 
 const PLANS = [
   {
@@ -71,6 +72,7 @@ function SubscriptionPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [isIntervalModalOpen, setIsIntervalModalOpen] = useState(false);
   const [monthlyStats, setMonthlyStats] = useState({ totalRequests: 0, totalCost: 0, recordCount: 0 });
 
   useEffect(() => {
@@ -89,6 +91,7 @@ function SubscriptionPage() {
         billingHistory: [],
         totalSpent: 0,
         monthlyLimit: 100,
+        parsingInterval: { days: 0, hours: 4, minutes: 0 },
       };
       setSubscription(defaultSub);
     }
@@ -99,6 +102,11 @@ function SubscriptionPage() {
     
     setLoading(false);
   }, []);
+
+  const handleIntervalSave = (interval: { days: number; hours: number; minutes: number }) => {
+    updateParsingInterval(interval);
+    setSubscription(prev => prev ? { ...prev, parsingInterval: interval } : null);
+  };
 
   const handleToggleParsing = () => {
     const newState = toggleParsing();
@@ -212,11 +220,17 @@ function SubscriptionPage() {
                   )}
                   <h3 className="font-semibold text-white">Парсинг</h3>
                 </div>
-                <p className={`text-2xl font-bold mb-1 ${
+                <div className="flex items-baseline justify-between">
+                  <p className={`text-2xl font-bold ${
                   subscription.parsingEnabled ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {subscription.parsingEnabled ? 'Активний' : 'Зупинений'}
-                </p>
+                    {subscription.parsingEnabled ? 'Активний' : 'Зупинений'}
+                  </p>
+                  <button onClick={() => setIsIntervalModalOpen(true)} className="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{`${subscription.parsingInterval.days}д ${subscription.parsingInterval.hours}г ${subscription.parsingInterval.minutes}хв`}</span>
+                  </button>
+                </div>
                 <button
                   onClick={handleToggleParsing}
                   className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
@@ -357,6 +371,13 @@ function SubscriptionPage() {
       <BillingHistoryModal
         isOpen={isBillingModalOpen}
         onClose={() => setIsBillingModalOpen(false)}
+      />
+
+      <ParsingIntervalModal
+        isOpen={isIntervalModalOpen}
+        onClose={() => setIsIntervalModalOpen(false)}
+        onSave={handleIntervalSave}
+        currentInterval={subscription.parsingInterval}
       />
     </div>
   );

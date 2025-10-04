@@ -117,6 +117,11 @@ export interface Subscription {
   billingHistory: BillingRecord[];
   totalSpent: number;
   monthlyLimit: number;
+  parsingInterval: {
+    days: number;
+    hours: number;
+    minutes: number;
+  };
 }
 
 export interface UserData {
