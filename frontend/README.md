@@ -1,73 +1,90 @@
-# React + TypeScript + Vite
+# BrandDefender Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Фронтенд для системи моніторингу репутації бренду з авторизацією через Supabase.
 
-Currently, two official plugins are available:
+## Технології
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS
+- Supabase (авторизація)
+- React Router
+- Lucide React (іконки)
 
-## React Compiler
+## Налаштування
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Встановлення залежностей
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Налаштування Supabase
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Створіть проект в [Supabase](https://supabase.com)
+2. Отримайте URL проекту та anon key
+3. Створіть файл `.env.local` в корені проекту:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 3. Запуск проекту
+
+```bash
+npm run dev
+```
+
+## Функціональність
+
+### Авторизація
+- ✅ Реєстрація користувачів
+- ✅ Вхід в систему
+- ✅ Вихід з акаунта
+- ✅ Захищені маршрути
+- ✅ Автоматичне перенаправлення
+
+### Сторінки
+- **Головна** (`/`) - лендінг сторінка
+- **Авторизація** (`/auth`) - логін/реєстрація
+- **Налаштування** (`/setup`) - налаштування бренду
+- **Дашборд** (`/dashboard`) - основна панель
+- **Сапорт** (`/support`) - управління відгуками
+
+### Компоненти
+- `AuthContext` - управління станом авторизації
+- `ProtectedRoute` - захищені маршрути
+- `Navbar` - навігація з кнопкою виходу
+- `AuthPage` - сторінка авторизації
+
+## Структура проекту
+
+```
+src/
+├── components/
+│   ├── dashboard/     # Компоненти дашборду
+│   ├── layout/        # Layout компоненти
+│   └── support/       # Компоненти сапорту
+├── contexts/          # React контексти
+├── pages/            # Сторінки додатку
+├── types/            # TypeScript типи
+└── utils/            # Утиліти
+```
+
+## Розробка
+
+### Лінт
+```bash
+npm run lint
+```
+
+### Збірка
+```bash
+npm run build
+```
+
+### Прев'ю
+```bash
+npm run preview
 ```

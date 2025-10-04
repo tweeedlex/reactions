@@ -1,35 +1,47 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, User, ArrowRight } from 'lucide-react';
-import { saveUserData } from '@/utils/localStorage';
+import { Shield, Mail, User, ArrowRight, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { signUp, signIn } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Зберігаємо базову інформацію користувача
-    const userData = {
-      user: {
-        name: formData.name,
-        email: formData.email,
-      },
-      brand: {
-        brandName: '',
-        keywords: [],
-        sources: [],
-        saasPoints: 1000,
-      },
-      isOnboarded: false,
-    };
-    
-    saveUserData(userData);
-    navigate('/setup');
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
+        if (error) {
+          setError(error.message);
+        } else {
+          navigate('/setup');
+        }
+      } else {
+        const { error } = await signUp(formData.email, formData.password, formData.name);
+        if (error) {
+          setError(error.message);
+        } else {
+          setError('Перевірте вашу пошту для підтвердження акаунта');
+        }
+      }
+    } catch (err) {
+      setError('Сталася неочікувана помилка');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,25 +58,63 @@ function AuthPage() {
 
         {/* Auth Form */}
         <div className="bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 border border-purple-500/20">
-          <h2 className="text-2xl font-bold text-white mb-6">Створити акаунт</h2>
+          <div className="flex justify-center mb-6">
+            <div className="flex bg-slate-700 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setIsLogin(true)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isLogin
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                Увійти
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLogin(false)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  !isLogin
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                Реєстрація
+              </button>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">
+            {isLogin ? 'Увійти в акаунт' : 'Створити акаунт'}
+          </h2>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <span className="text-red-300 text-sm">{error}</span>
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Ваше ім'я
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-700 text-white pl-12 pr-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
-                  placeholder="Іван Петренко"
-                  required
-                />
+            {!isLogin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Ваше ім'я
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-slate-700 text-white pl-12 pr-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
+                    placeholder="Іван Петренко"
+                    required={!isLogin}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -83,17 +133,71 @@ function AuthPage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Пароль
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full bg-slate-700 text-white pl-12 pr-12 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Продовжити
-              <ArrowRight className="w-5 h-5" />
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  {isLogin ? 'Увійти' : 'Створити акаунт'}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </form>
 
           <p className="text-gray-400 text-sm text-center mt-6">
-            Натискаючи "Продовжити", ви погоджуєтесь з нашими умовами використання
+            {isLogin ? (
+              <>
+                Немає акаунта?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(false)}
+                  className="text-purple-400 hover:text-purple-300 underline"
+                >
+                  Зареєструватися
+                </button>
+              </>
+            ) : (
+              <>
+                Вже маєте акаунт?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(true)}
+                  className="text-purple-400 hover:text-purple-300 underline"
+                >
+                  Увійти
+                </button>
+              </>
+            )}
           </p>
         </div>
 

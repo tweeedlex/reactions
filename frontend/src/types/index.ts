@@ -68,6 +68,7 @@ export type ResponseStyle = 'official' | 'friendly' | 'support';
 
 // Auth & Onboarding types
 export interface User {
+  id: string;
   email: string;
   name: string;
 }

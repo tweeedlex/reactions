@@ -42,6 +42,18 @@ export const updateBrandFilters = (
   }
 };
 
+export const updateUserProfile = (userId: string, name: string, email: string): void => {
+  const data = getUserData();
+  if (data) {
+    data.user = {
+      id: userId,
+      name,
+      email,
+    };
+    saveUserData(data);
+  }
+};
+
 export const getBrandFilters = () => {
   const data = getUserData();
   if (data?.brand) {
