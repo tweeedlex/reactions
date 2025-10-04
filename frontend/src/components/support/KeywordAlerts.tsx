@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react';
-import type { KeywordAlert, Comment } from '@/types';
+import type { KeywordAlert } from '@/types';
 
 interface KeywordAlertsProps {
   alerts: KeywordAlert[];
@@ -9,7 +9,6 @@ interface KeywordAlertsProps {
 function KeywordAlerts({ alerts }: KeywordAlertsProps) {
   const [currentAlertIndex, setCurrentAlertIndex] = useState(0);
   const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const currentAlert = alerts[currentAlertIndex];
   const currentComment = currentAlert?.comments[currentCommentIndex];

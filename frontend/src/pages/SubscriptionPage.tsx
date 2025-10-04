@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building, History, DollarSign, Clock } from 'lucide-react';
-import { getSubscriptionStatus, updateSubscription, toggleParsing, getMonthlyStats, updateParsingInterval } from '@/utils/localStorage';
+import { ArrowLeft, Shield, Play, Pause, Check, X, Crown, Zap, Building, History, Clock } from 'lucide-react';
+import { getSubscriptionStatus, updateSubscription, toggleParsing, updateParsingInterval } from '@/utils/localStorage';
 import type { Subscription } from '@/types';
 import BillingHistoryModal from '@/components/BillingHistoryModal';
 import ParsingIntervalModal from '@/components/ParsingIntervalModal';
@@ -73,7 +73,6 @@ function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
   const [isIntervalModalOpen, setIsIntervalModalOpen] = useState(false);
-  const [monthlyStats, setMonthlyStats] = useState({ totalRequests: 0, totalCost: 0, recordCount: 0 });
 
   useEffect(() => {
     const subData = getSubscriptionStatus();
@@ -95,10 +94,6 @@ function SubscriptionPage() {
       };
       setSubscription(defaultSub);
     }
-    
-    // Завантажуємо статистику за місяць
-    const stats = getMonthlyStats();
-    setMonthlyStats(stats);
     
     setLoading(false);
   }, []);

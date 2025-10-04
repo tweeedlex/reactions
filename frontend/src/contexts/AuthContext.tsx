@@ -65,6 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               billingHistory: mockBillingHistory,
               totalSpent: mockBillingHistory.reduce((sum, record) => sum + record.cost, 0),
               monthlyLimit: 100,
+              parsingInterval: {
+                days: 0,
+                hours: 4,
+                minutes: 0,
+              },
             },
             isOnboarded: false,
           };
