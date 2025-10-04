@@ -20,21 +20,23 @@ function HomePage() {
                             з розумним фідбеком
                         </span>
                     </h1>
-
                     <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
                         BrandDefender автоматично парсить соціальні мережі, збирає відгуки користувачів та допомагає вашому саппорту працювати швидше та ефективніше
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                        <Link 
-                            to="/dashboard"
+                        <Link
+                            to="/auth"
                             className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
                         >
-                            Перейти до дашборду
+                            Try Now — Безкоштовно
                         </Link>
-                        <button className="bg-slate-800 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-slate-700 transition-colors border border-purple-500/30">
-                            Подивитися демо
-                        </button>
+                        <a
+                            href="#features"
+                            className="bg-slate-800 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-slate-700 transition-colors border border-purple-500/30"
+                        >
+                            Learn More
+                        </a>
                     </div>
 
                     {/* Stats */}
@@ -249,11 +251,11 @@ function HomePage() {
                     <p className="text-xl text-purple-100 mb-8">
                         Приєднуйтесь до тисяч компаній, які довіряють BrandDefender
                     </p>
-                    <Link 
-                        to="/dashboard"
+                    <Link
+                        to="/auth"
                         className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-2xl"
                     >
-                        Перейти до дашборду
+                        Спробувати зараз
                     </Link>
                 </div>
             </div>

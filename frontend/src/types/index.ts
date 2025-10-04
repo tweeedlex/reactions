@@ -65,3 +65,22 @@ export interface DashboardData {
 
 // Response style type
 export type ResponseStyle = 'official' | 'friendly' | 'support';
+
+// Auth & Onboarding types
+export interface User {
+  email: string;
+  name: string;
+}
+
+export interface BrandSetup {
+  brandName: string;
+  keywords: string[];
+  sources: string[];
+  saasPoints: number;
+}
+
+export interface UserData {
+  user: User;
+  brand: BrandSetup;
+  isOnboarded: boolean;
+}
