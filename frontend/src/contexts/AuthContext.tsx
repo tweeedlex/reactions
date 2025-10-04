@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               brandName: '',
               keywords: [],
               sources: [],
+              sourceLinks: [],
               saasPoints: 1000,
             },
             isOnboarded: false,

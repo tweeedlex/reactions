@@ -1,4 +1,4 @@
-import type { UserData } from '@/types';
+import type { UserData, SourceLink } from '@/types';
 
 const USER_DATA_KEY = 'branddefender_user_data';
 
@@ -31,13 +31,17 @@ export const updateSaasPoints = (points: number): void => {
 export const updateBrandFilters = (
   brandName: string,
   keywords: string[],
-  sources: string[]
+  sources: string[],
+  sourceLinks?: SourceLink[]
 ): void => {
   const data = getUserData();
   if (data) {
     data.brand.brandName = brandName;
     data.brand.keywords = keywords;
     data.brand.sources = sources;
+    if (sourceLinks) {
+      data.brand.sourceLinks = sourceLinks;
+    }
     saveUserData(data);
   }
 };
@@ -61,7 +65,43 @@ export const getBrandFilters = () => {
       brandName: data.brand.brandName,
       keywords: data.brand.keywords,
       sources: data.brand.sources,
+      sourceLinks: data.brand.sourceLinks || [],
     };
+  }
+  return null;
+};
+
+export const updateSourceLink = (sourceName: string, url: string): void => {
+  const data = getUserData();
+  if (data) {
+    if (!data.brand.sourceLinks) {
+      data.brand.sourceLinks = [];
+    }
+    
+    const existingIndex = data.brand.sourceLinks.findIndex(link => link.name === sourceName);
+    if (existingIndex >= 0) {
+      data.brand.sourceLinks[existingIndex].url = url;
+    } else {
+      data.brand.sourceLinks.push({ name: sourceName, url });
+    }
+    
+    saveUserData(data);
+  }
+};
+
+export const removeSourceLink = (sourceName: string): void => {
+  const data = getUserData();
+  if (data && data.brand.sourceLinks) {
+    data.brand.sourceLinks = data.brand.sourceLinks.filter(link => link.name !== sourceName);
+    saveUserData(data);
+  }
+};
+
+export const getSourceLink = (sourceName: string): string | null => {
+  const data = getUserData();
+  if (data?.brand?.sourceLinks) {
+    const link = data.brand.sourceLinks.find(link => link.name === sourceName);
+    return link ? link.url : null;
   }
   return null;
 };

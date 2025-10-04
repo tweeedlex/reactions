@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Building2, Tag, Globe, Check, ArrowRight, ArrowLeft } from 'lucide-react';
-import { getUserData, saveUserData } from '@/utils/localStorage';
+import { Shield, Building2, Tag, Globe, Check, ArrowRight, ArrowLeft, Link, ExternalLink } from 'lucide-react';
+import { getUserData, saveUserData, updateSourceLink, getSourceLink } from '@/utils/localStorage';
+import SetupSourceModal from '@/components/SetupSourceModal';
+import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
   'Google SERP',
@@ -23,6 +25,9 @@ function BrandSetupPage() {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [sourceLinks, setSourceLinks] = useState<SourceLink[]>([]);
+  const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
+  const [currentSource, setCurrentSource] = useState<string>('');
 
   const handleAddKeyword = () => {
     if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
@@ -38,9 +43,32 @@ function BrandSetupPage() {
   const toggleSource = (source: string) => {
     if (selectedSources.includes(source)) {
       setSelectedSources(selectedSources.filter((s) => s !== source));
+      // Видаляємо посилання при відключенні джерела
+      setSourceLinks(sourceLinks.filter(link => link.name !== source));
     } else {
       setSelectedSources([...selectedSources, source]);
+      // Відкриваємо модальне вікно для введення посилання
+      setCurrentSource(source);
+      setIsSourceModalOpen(true);
     }
+  };
+
+  const handleSourceLinkSave = (sourceLink: SourceLink) => {
+    updateSourceLink(sourceLink.name, sourceLink.url);
+    setSourceLinks(prev => {
+      const existingIndex = prev.findIndex(link => link.name === sourceLink.name);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = sourceLink;
+        return updated;
+      }
+      return [...prev, sourceLink];
+    });
+  };
+
+  const handleEditSourceLink = (sourceName: string) => {
+    setCurrentSource(sourceName);
+    setIsSourceModalOpen(true);
   };
 
   const handleComplete = () => {
@@ -56,6 +84,7 @@ function BrandSetupPage() {
         brandName,
         keywords,
         sources: selectedSources,
+        sourceLinks,
         saasPoints: 1000,
       },
       isOnboarded: true,
@@ -67,7 +96,11 @@ function BrandSetupPage() {
 
   const canProceedStep1 = brandName.trim().length > 0;
   const canProceedStep2 = keywords.length > 0;
-  const canComplete = selectedSources.length > 0;
+  // Джерело вважається підключеним тільки якщо є посилання
+  const connectedSources = selectedSources.filter(source => 
+    sourceLinks.some(link => link.name === source && link.url.trim())
+  );
+  const canComplete = connectedSources.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4 py-8">
@@ -225,29 +258,66 @@ function BrandSetupPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Доступні джерела ({selectedSources.length} обрано)
+                  Доступні джерела ({connectedSources.length} підключено з {selectedSources.length} обрано)
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {AVAILABLE_SOURCES.map((source) => {
                     const isSelected = selectedSources.includes(source);
+                    const hasLink = sourceLinks.some(link => link.name === source && link.url.trim());
+                    const isConnected = isSelected && hasLink;
+                    
                     return (
-                      <button
-                        key={source}
-                        onClick={() => toggleSource(source)}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          isSelected
-                            ? 'bg-purple-500/20 border-purple-500 text-white'
-                            : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-purple-500/50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{source}</span>
-                          {isSelected && <Check className="w-5 h-5 text-purple-400" />}
-                        </div>
-                      </button>
+                      <div key={source} className="relative">
+                        <button
+                          onClick={() => toggleSource(source)}
+                          className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                            isConnected
+                              ? 'bg-green-500/20 border-green-500 text-white'
+                              : isSelected
+                              ? 'bg-orange-500/20 border-orange-500 text-white'
+                              : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-purple-500/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{source}</span>
+                            {isConnected && <Check className="w-5 h-5 text-green-400" />}
+                            {isSelected && !hasLink && <Link className="w-5 h-5 text-orange-400" />}
+                          </div>
+                          {isSelected && !hasLink && (
+                            <p className="text-xs text-orange-300 mt-1">
+                              Потрібно ввести посилання
+                            </p>
+                          )}
+                        </button>
+                        
+                        {isConnected && (
+                          <button
+                            onClick={() => handleEditSourceLink(source)}
+                            className="absolute top-2 right-2 p-1 bg-slate-700/80 hover:bg-slate-600 rounded text-gray-300 hover:text-white transition-colors"
+                            title="Редагувати посилання"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
+                
+                {selectedSources.length > 0 && (
+                  <div className="mt-4 p-4 bg-slate-700/30 rounded-lg border border-purple-500/20">
+                    <div className="flex items-start gap-3">
+                      <Link className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-white mb-1">Статус підключення</h4>
+                        <p className="text-xs text-gray-400">
+                          Зелені джерела повністю підключені. Оранжеві потребують введення посилання. 
+                          Натисніть на джерело, щоб налаштувати посилання.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
@@ -278,6 +348,15 @@ function BrandSetupPage() {
           </p>
         </div>
       </div>
+
+      {/* Source Setup Modal */}
+      <SetupSourceModal
+        isOpen={isSourceModalOpen}
+        onClose={() => setIsSourceModalOpen(false)}
+        onSave={handleSourceLinkSave}
+        sourceName={currentSource}
+        existingUrl={getSourceLink(currentSource) || undefined}
+      />
     </div>
   );
 }

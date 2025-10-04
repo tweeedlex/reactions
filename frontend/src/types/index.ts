@@ -73,10 +73,16 @@ export interface User {
   name: string;
 }
 
+export interface SourceLink {
+  name: string;
+  url: string;
+}
+
 export interface BrandSetup {
   brandName: string;
   keywords: string[];
   sources: string[];
+  sourceLinks: SourceLink[];
   saasPoints: number;
 }
 

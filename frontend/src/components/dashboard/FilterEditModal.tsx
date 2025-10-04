@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Building2, Tag, Globe, Check, Save } from 'lucide-react';
-import { getBrandFilters, updateBrandFilters } from '@/utils/localStorage';
+import { X, Building2, Tag, Globe, Check, Save, Link, ExternalLink } from 'lucide-react';
+import { getBrandFilters, updateBrandFilters, updateSourceLink, getSourceLink, removeSourceLink } from '@/utils/localStorage';
+import SetupSourceModal from '@/components/SetupSourceModal';
+import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
   'Google SERP',
@@ -26,6 +28,9 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [keywordInput, setKeywordInput] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [sourceLinks, setSourceLinks] = useState<SourceLink[]>([]);
+  const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
+  const [currentSource, setCurrentSource] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -34,6 +39,7 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
         setBrandName(filters.brandName);
         setKeywords(filters.keywords);
         setSelectedSources(filters.sources);
+        setSourceLinks(filters.sourceLinks || []);
       }
     }
   }, [isOpen]);
@@ -52,18 +58,51 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   const toggleSource = (source: string) => {
     if (selectedSources.includes(source)) {
       setSelectedSources(selectedSources.filter((s) => s !== source));
+      // Видаляємо посилання при відключенні джерела
+      setSourceLinks(sourceLinks.filter(link => link.name !== source));
+      removeSourceLink(source);
     } else {
       setSelectedSources([...selectedSources, source]);
+      // Відкриваємо модальне вікно для введення посилання
+      setCurrentSource(source);
+      setIsSourceModalOpen(true);
     }
   };
 
+  const handleSourceLinkSave = (sourceLink: SourceLink) => {
+    updateSourceLink(sourceLink.name, sourceLink.url);
+    setSourceLinks(prev => {
+      const existingIndex = prev.findIndex(link => link.name === sourceLink.name);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = sourceLink;
+        return updated;
+      }
+      return [...prev, sourceLink];
+    });
+  };
+
+  const handleEditSourceLink = (sourceName: string) => {
+    setCurrentSource(sourceName);
+    setIsSourceModalOpen(true);
+  };
+
   const handleSave = () => {
-    if (brandName.trim() && keywords.length > 0 && selectedSources.length > 0) {
-      updateBrandFilters(brandName, keywords, selectedSources);
+    // Джерело вважається підключеним тільки якщо є посилання
+    const connectedSources = selectedSources.filter(source => 
+      sourceLinks.some(link => link.name === source && link.url.trim())
+    );
+    
+    if (brandName.trim() && keywords.length > 0 && connectedSources.length > 0) {
+      updateBrandFilters(brandName, keywords, selectedSources, sourceLinks);
       onSave?.();
       onClose();
     }
   };
+
+  const connectedSources = selectedSources.filter(source => 
+    sourceLinks.some(link => link.name === source && link.url.trim())
+  );
 
   if (!isOpen) return null;
 
@@ -161,7 +200,7 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
               <div>
                 <h3 className="text-lg font-semibold text-white">Джерела моніторингу</h3>
                 <p className="text-sm text-gray-400">
-                  Платформи для відстеження відгуків ({selectedSources.length} обрано)
+                  Платформи для відстеження відгуків ({connectedSources.length} підключено з {selectedSources.length} обрано)
                 </p>
               </div>
             </div>
@@ -169,24 +208,61 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {AVAILABLE_SOURCES.map((source) => {
                 const isSelected = selectedSources.includes(source);
+                const hasLink = sourceLinks.some(link => link.name === source && link.url.trim());
+                const isConnected = isSelected && hasLink;
+                
                 return (
-                  <button
-                    key={source}
-                    onClick={() => toggleSource(source)}
-                    className={`p-3 rounded-lg border-2 transition-all text-left ${
-                      isSelected
-                        ? 'bg-purple-500/20 border-purple-500 text-white'
-                        : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-purple-500/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{source}</span>
-                      {isSelected && <Check className="w-4 h-4 text-purple-400" />}
-                    </div>
-                  </button>
+                  <div key={source} className="relative">
+                    <button
+                      onClick={() => toggleSource(source)}
+                      className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                        isConnected
+                          ? 'bg-green-500/20 border-green-500 text-white'
+                          : isSelected
+                          ? 'bg-orange-500/20 border-orange-500 text-white'
+                          : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-purple-500/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{source}</span>
+                        {isConnected && <Check className="w-4 h-4 text-green-400" />}
+                        {isSelected && !hasLink && <Link className="w-4 h-4 text-orange-400" />}
+                      </div>
+                      {isSelected && !hasLink && (
+                        <p className="text-xs text-orange-300 mt-1">
+                          Потрібно ввести посилання
+                        </p>
+                      )}
+                    </button>
+                    
+                    {isConnected && (
+                      <button
+                        onClick={() => handleEditSourceLink(source)}
+                        className="absolute top-1 right-1 p-1 bg-slate-700/80 hover:bg-slate-600 rounded text-gray-300 hover:text-white transition-colors"
+                        title="Редагувати посилання"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
+            
+            {selectedSources.length > 0 && (
+              <div className="mt-4 p-4 bg-slate-700/30 rounded-lg border border-purple-500/20">
+                <div className="flex items-start gap-3">
+                  <Link className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-white mb-1">Статус підключення</h4>
+                    <p className="text-xs text-gray-400">
+                      Зелені джерела повністю підключені. Оранжеві потребують введення посилання. 
+                      Натисніть на джерело, щоб налаштувати посилання.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -200,7 +276,7 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
           </button>
           <button
             onClick={handleSave}
-            disabled={!brandName.trim() || keywords.length === 0 || selectedSources.length === 0}
+            disabled={!brandName.trim() || keywords.length === 0 || connectedSources.length === 0}
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             <Save className="w-5 h-5" />
@@ -208,6 +284,15 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
           </button>
         </div>
       </div>
+
+      {/* Source Setup Modal */}
+      <SetupSourceModal
+        isOpen={isSourceModalOpen}
+        onClose={() => setIsSourceModalOpen(false)}
+        onSave={handleSourceLinkSave}
+        sourceName={currentSource}
+        existingUrl={getSourceLink(currentSource) || undefined}
+      />
     </div>
   );
 }
