@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, AlertTriangle, Clock } from 'lucide-react';
 import type { Comment } from '@/types';
-import { mockComments, mockAlerts } from '@/utils/mockData';
-import { CommentCard, AlertCard, ResponseConstructor } from '@/components/support';
+import { mockComments, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
+import { CommentCard, AlertCard, ResponseConstructor, KeywordAlerts } from '@/components/support';
 
 function SupportPage() {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
@@ -49,6 +49,11 @@ function SupportPage() {
               <AlertCard key={alert.id} alert={alert} />
             ))}
           </div>
+        </div>
+
+        {/* Keyword Alerts Section */}
+        <div className="mb-8">
+          <KeywordAlerts alerts={mockKeywordAlerts} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

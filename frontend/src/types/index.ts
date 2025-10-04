@@ -11,6 +11,17 @@ export interface Comment {
   likes: number;
   replies: number;
   url: string;
+  highlightedKeywords?: string[];
+}
+
+export interface KeywordAlert {
+  id: number;
+  keyword: string;
+  count: number;
+  trend: 'up' | 'down' | 'stable';
+  severity: 'high' | 'medium' | 'low';
+  comments: Comment[];
+  lastMention: string;
 }
 
 // Alert types for SupportPage
