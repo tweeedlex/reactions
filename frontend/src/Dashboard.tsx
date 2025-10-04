@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Shield, 
   TrendingUp, 
@@ -15,11 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-interface DashboardProps {
-  onBack: () => void;
-}
-
-function Dashboard({ onBack }: DashboardProps) {
+function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
 
   // Мокові дані для аналітики
@@ -102,13 +99,13 @@ function Dashboard({ onBack }: DashboardProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <button 
-                onClick={onBack}
+              <Link 
+                to="/"
                 className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
                 Назад до головної
-              </button>
+              </Link>
               <div className="flex items-center gap-3 ml-8">
                 <Shield className="w-8 h-8 text-purple-400" />
                 <h1 className="text-2xl font-bold text-white">BrandDefender Dashboard</h1>
@@ -128,6 +125,13 @@ function Dashboard({ onBack }: DashboardProps) {
                   <option value="90d">Останні 90 днів</option>
                 </select>
               </div>
+              <Link 
+                to="/support"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Сапорт
+              </Link>
               <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 Експорт
