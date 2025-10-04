@@ -1,8 +1,11 @@
 import { MessageSquare, BarChart3, Zap, Star, Check, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Navbar, Footer } from '@/components/layout';
+import { useAuth } from '@/contexts/AuthContext';
 
 function HomePage() {
+    const { user, loading, hasCompany } = useAuth();
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
             <Navbar />
@@ -25,12 +28,23 @@ function HomePage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                        <Link
-                            to="/auth"
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
-                        >
-                            Try Now — Безкоштовно
-                        </Link>
+                        {!loading && user ? (
+                            // Якщо користувач залогінений
+                            <Link
+                                to={hasCompany ? "/dashboard" : "/setup"}
+                                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
+                            >
+                                {hasCompany ? "Перейти до дашборду" : "Завершити налаштування"}
+                            </Link>
+                        ) : (
+                            // Якщо користувач не залогінений
+                            <Link
+                                to="/auth"
+                                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 shadow-2xl shadow-purple-500/50"
+                            >
+                                Try Now — Безкоштовно
+                            </Link>
+                        )}
                         <a
                             href="#features"
                             className="bg-slate-800 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-slate-700 transition-colors border border-purple-500/30"
@@ -251,12 +265,21 @@ function HomePage() {
                     <p className="text-xl text-purple-100 mb-8">
                         Приєднуйтесь до тисяч компаній, які довіряють BrandDefender
                     </p>
-                    <Link
-                        to="/auth"
-                        className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-2xl"
-                    >
-                        Спробувати зараз
-                    </Link>
+                    {!loading && user ? (
+                        <Link
+                            to={hasCompany ? "/dashboard" : "/setup"}
+                            className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-2xl"
+                        >
+                            {hasCompany ? "Перейти до дашборду" : "Завершити налаштування"}
+                        </Link>
+                    ) : (
+                        <Link
+                            to="/auth"
+                            className="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-2xl"
+                        >
+                            Спробувати зараз
+                        </Link>
+                    )}
                 </div>
             </div>
 

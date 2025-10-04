@@ -23,11 +23,12 @@ function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(formData.email, formData.password);
+        const { error, hasCompany: userHasCompany } = await signIn(formData.email, formData.password);
         if (error) {
           setError(error.message);
         } else {
-          navigate('/setup');
+          // Перенаправляємо на основі наявності компанії
+          navigate(userHasCompany ? '/dashboard' : '/setup');
         }
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.name);

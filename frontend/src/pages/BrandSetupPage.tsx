@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, Building2, Tag, Globe, Check, ArrowRight, ArrowLeft, Link, ExternalLink } from 'lucide-react';
 import { getUserData, saveUserData, updateSourceLink, getSourceLink } from '@/utils/localStorage';
 import SetupSourceModal from '@/components/SetupSourceModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyCreation } from '@/hooks/useCompanyCreation';
 import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
@@ -20,6 +22,8 @@ const AVAILABLE_SOURCES = [
 
 function BrandSetupPage() {
   const navigate = useNavigate();
+  const { user, refreshCompanyStatus } = useAuth();
+  const { createCompanyWithUser } = useCompanyCreation();
   const [step, setStep] = useState(1);
   const [brandName, setBrandName] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -28,6 +32,7 @@ function BrandSetupPage() {
   const [sourceLinks, setSourceLinks] = useState<SourceLink[]>([]);
   const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
   const [currentSource, setCurrentSource] = useState<string>('');
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleAddKeyword = () => {
     if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
@@ -71,27 +76,71 @@ function BrandSetupPage() {
     setIsSourceModalOpen(true);
   };
 
-  const handleComplete = () => {
-    const userData = getUserData();
-    if (!userData) {
+  const handleComplete = async () => {
+    if (!user) {
       navigate('/auth');
       return;
     }
 
-    const updatedData = {
-      ...userData,
-      brand: {
-        brandName,
-        keywords,
-        sources: selectedSources,
-        sourceLinks,
-        saasPoints: 1000,
-      },
-      isOnboarded: true,
-    };
+    setIsCreating(true);
 
-    saveUserData(updatedData);
-    navigate('/dashboard');
+    try {
+      // Створюємо компанію в Supabase
+      const { error } = await createCompanyWithUser(user, {
+        title: brandName,
+        site_url: '', // Поки що порожнє, можна додати поле для URL
+      });
+
+      if (error) {
+        console.error('Error creating company:', error);
+        // Продовжуємо з локальним збереженням навіть якщо є помилка
+      }
+
+      // Зберігаємо дані локально
+      const userData = getUserData();
+      if (userData) {
+        const updatedData = {
+          ...userData,
+          brand: {
+            brandName,
+            keywords,
+            sources: selectedSources,
+            sourceLinks,
+            saasPoints: 1000,
+          },
+          isOnboarded: true,
+        };
+
+        saveUserData(updatedData);
+      }
+
+      // Оновлюємо стан в AuthContext та перенаправляємо
+      await refreshCompanyStatus();
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error during setup completion:', error);
+      // Продовжуємо з локальним збереженням
+      const userData = getUserData();
+      if (userData) {
+        const updatedData = {
+          ...userData,
+          brand: {
+            brandName,
+            keywords,
+            sources: selectedSources,
+            sourceLinks,
+            saasPoints: 1000,
+          },
+          isOnboarded: true,
+        };
+
+        saveUserData(updatedData);
+        await refreshCompanyStatus();
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const canProceedStep1 = brandName.trim().length > 0;
@@ -330,11 +379,20 @@ function BrandSetupPage() {
                 </button>
                 <button
                   onClick={handleComplete}
-                  disabled={!canComplete}
+                  disabled={!canComplete || isCreating}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  <Check className="w-5 h-5" />
-                  Завершити
+                  {isCreating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Створення...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Завершити
+                    </>
+                  )}
                 </button>
               </div>
             </div>

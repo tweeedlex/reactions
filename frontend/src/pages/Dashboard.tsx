@@ -20,6 +20,7 @@ import {
 import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
 import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
 import { AlertCard, KeywordAlerts } from '@/components/support';
+import { CompanyInfo } from '@/components/CompanyInfo';
 
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
@@ -102,6 +103,11 @@ function Dashboard() {
               </select>
             </div>
           </div>
+        </div>
+
+        {/* Company Info */}
+        <div className="mb-6">
+          <CompanyInfo />
         </div>
 
         {/* Key Metrics */}

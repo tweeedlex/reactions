@@ -130,3 +130,30 @@ export interface UserData {
   subscription: Subscription;
   isOnboarded: boolean;
 }
+
+// Company types for Supabase
+export interface Company {
+  id: number;
+  title: string;
+  site_url: string;
+}
+
+export interface UserCompany {
+  id: number;
+  user_id: string;
+  company_id: number;
+  role_id: number;
+}
+
+export interface UserCompanyWithCompany extends UserCompany {
+  company: Company;
+}
+
+// Company state for Redux
+export interface CompanyState {
+  companies: Company[];
+  userCompanies: UserCompanyWithCompany[];
+  currentCompany: Company | null;
+  loading: boolean;
+  error: string | null;
+}
