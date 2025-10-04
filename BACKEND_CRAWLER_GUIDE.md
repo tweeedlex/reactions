@@ -1,5 +1,17 @@
 # Backend Crawler Guide
 
+## Логика работы:
+
+1. **Создание задачи** → статус "Planed"
+2. **Начало выполнения** → статус "Started" (через `add_task_status`)
+3. **Выполнение краулинга** → сбор данных
+4. **Внесение результатов** → `add_crawling_result` или `add_crawling_results` → сохраняются в `crawler.company_messages`
+5. **Завершение** → статус "Success" или "Failed" (через `add_task_status`)
+6. **Автопродление** → создание новой задачи при "Success" или "Failed"
+7. **Остановка** → статус "Stoped" (через `stop_task`)
+
+## Важные моменты
+
 ## Архитектура системы
 
 ### Основные компоненты:
@@ -24,7 +36,26 @@ const { data: tasks, error } = await supabase.rpc('get_tasks_ready_for_execution
 - `url` - URL для краулинга
 - `scheduled_at` - время планирования
 
-### 2. Добавление статуса задачи
+### 2. Функции для внесения результатов
+```javascript
+// Добавить один результат краулинга
+const { data: resultId, error } = await supabase.rpc('add_crawling_result', {
+  p_task_id: taskId,
+  p_text: 'Текст результата',
+  p_context: JSON.stringify({ rating: 5, author: 'User123' })
+});
+
+// Добавить несколько результатов краулинга
+const { data: count, error } = await supabase.rpc('add_crawling_results', {
+  p_task_id: taskId,
+  p_results: JSON.stringify([
+    { text: 'Результат 1', context: { rating: 5 } },
+    { text: 'Результат 2', context: { rating: 4 } }
+  ])
+});
+```
+
+### 3. Добавление статуса задачи
 ```javascript
 // Начать выполнение
 await supabase.rpc('add_task_status', {
@@ -59,9 +90,46 @@ await supabase.rpc('add_task_status', {
 });
 ```
 
-### 3. Сохранение результатов
+### 4. Сохранение результатов
+
+#### Добавить один результат краулинга
 ```javascript
-// Сохранить результат краулинга
+// Сохранить один результат краулинга
+const { data: resultId, error } = await supabase.rpc('add_crawling_result', {
+  p_task_id: taskId,
+  p_text: 'Новый отзыв: "Отличное приложение!"',
+  p_context: JSON.stringify({
+    rating: 5,
+    author: 'User123',
+    date: '2024-01-15',
+    source: 'App Store'
+  })
+});
+// Возвращает: { result_id: number }
+```
+
+#### Добавить несколько результатов краулинга
+```javascript
+// Сохранить несколько результатов краулинга
+const { data: count, error } = await supabase.rpc('add_crawling_results', {
+  p_task_id: taskId,
+  p_results: JSON.stringify([
+    {
+      text: 'Отзыв 1: "Отличное приложение!"',
+      context: { rating: 5, author: 'User1', date: '2024-01-15' }
+    },
+    {
+      text: 'Отзыв 2: "Хорошее приложение"',
+      context: { rating: 4, author: 'User2', date: '2024-01-15' }
+    }
+  ])
+});
+// Возвращает: { inserted_count: number }
+```
+
+#### Альтернативный способ (прямая вставка)
+```javascript
+// Сохранить результат краулинга напрямую
 await supabase
   .from('crawler.company_messages')
   .insert({
@@ -105,15 +173,20 @@ for (const task of tasks) {
     }
     
     // 4. Сохранить результаты
-    for (const result of results) {
-      await supabase
-        .from('crawler.company_messages')
-        .insert({
-          task_id: task.task_id,
-          text: result.text,
-          context: JSON.stringify(result.context)
-        });
-    }
+    // Способ 1: Добавить все результаты одной функцией
+    await supabase.rpc('add_crawling_results', {
+      p_task_id: task.task_id,
+      p_results: JSON.stringify(results)
+    });
+    
+    // Способ 2: Добавлять по одному (если нужен контроль)
+    // for (const result of results) {
+    //   await supabase.rpc('add_crawling_result', {
+    //     p_task_id: task.task_id,
+    //     p_text: result.text,
+    //     p_context: JSON.stringify(result.context)
+    //   });
+    // }
     
     // 5. Завершить успешно
     await supabase.rpc('add_task_status', {
