@@ -97,8 +97,19 @@ export interface BrandSetup {
   saasPoints: number;
 }
 
+export interface Subscription {
+  isActive: boolean;
+  plan: 'free' | 'basic' | 'pro' | 'enterprise';
+  parsingEnabled: boolean;
+  maxSources: number;
+  usedSources: number;
+  expiresAt?: string;
+  autoRenew: boolean;
+}
+
 export interface UserData {
   user: User;
   brand: BrandSetup;
+  subscription: Subscription;
   isOnboarded: boolean;
 }

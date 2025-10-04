@@ -54,6 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               sourceLinks: [],
               saasPoints: 1000,
             },
+            subscription: {
+              isActive: true,
+              plan: 'basic',
+              parsingEnabled: true,
+              maxSources: 5,
+              usedSources: 0,
+              autoRenew: true,
+            },
             isOnboarded: false,
           };
           saveUserData(userData);

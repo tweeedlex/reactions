@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { HomePage, Dashboard, SupportPage, AuthPage, BrandSetupPage } from './pages';
+import { HomePage, Dashboard, SupportPage, AuthPage, BrandSetupPage, SubscriptionPage } from './pages';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -23,6 +23,14 @@ function App() {
                     element={
                         <ProtectedRoute>
                             <SupportPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/subscription"
+                    element={
+                        <ProtectedRoute>
+                            <SubscriptionPage />
                         </ProtectedRoute>
                     }
                 />

@@ -15,6 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
   Settings,
+  Crown,
 } from 'lucide-react';
 import { mockDashboardData } from '@/utils/mockData';
 import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
@@ -61,6 +62,13 @@ function Dashboard() {
                 <Settings className="w-4 h-4" />
                 Фільтри
               </button>
+              <Link
+                to="/subscription"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <Crown className="w-4 h-4" />
+                Підписка
+              </Link>
               <Link
                 to="/support"
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"

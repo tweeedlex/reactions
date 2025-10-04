@@ -1,4 +1,4 @@
-import type { UserData, SourceLink } from '@/types';
+import type { UserData, SourceLink, Subscription } from '@/types';
 
 const USER_DATA_KEY = 'branddefender_user_data';
 
@@ -104,4 +104,66 @@ export const getSourceLink = (sourceName: string): string | null => {
     return link ? link.url : null;
   }
   return null;
+};
+
+export const getSubscription = (): Subscription | null => {
+  const data = getUserData();
+  if (data?.subscription) {
+    return data.subscription;
+  }
+  
+  // Якщо підписки немає, створюємо базову
+  const defaultSubscription: Subscription = {
+    isActive: true,
+    plan: 'basic',
+    parsingEnabled: true,
+    maxSources: 5,
+    usedSources: 0,
+    autoRenew: true,
+  };
+  
+  // Зберігаємо базову підписку
+  if (data) {
+    data.subscription = defaultSubscription;
+    saveUserData(data);
+  }
+  
+  return defaultSubscription;
+};
+
+export const updateSubscription = (subscription: Partial<Subscription>): void => {
+  const data = getUserData();
+  if (data) {
+    data.subscription = {
+      ...data.subscription,
+      ...subscription,
+    };
+    saveUserData(data);
+  }
+};
+
+export const toggleParsing = (): boolean => {
+  const data = getUserData();
+  if (data) {
+    const newParsingState = !data.subscription.parsingEnabled;
+    data.subscription.parsingEnabled = newParsingState;
+    saveUserData(data);
+    return newParsingState;
+  }
+  return false;
+};
+
+export const getSubscriptionStatus = () => {
+  const subscription = getSubscription();
+  if (!subscription) return null;
+  
+  return {
+    isActive: subscription.isActive,
+    plan: subscription.plan,
+    parsingEnabled: subscription.parsingEnabled,
+    maxSources: subscription.maxSources,
+    usedSources: subscription.usedSources,
+    expiresAt: subscription.expiresAt,
+    autoRenew: subscription.autoRenew,
+  };
 };
