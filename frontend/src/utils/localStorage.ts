@@ -27,3 +27,29 @@ export const updateSaasPoints = (points: number): void => {
     saveUserData(data);
   }
 };
+
+export const updateBrandFilters = (
+  brandName: string,
+  keywords: string[],
+  sources: string[]
+): void => {
+  const data = getUserData();
+  if (data) {
+    data.brand.brandName = brandName;
+    data.brand.keywords = keywords;
+    data.brand.sources = sources;
+    saveUserData(data);
+  }
+};
+
+export const getBrandFilters = () => {
+  const data = getUserData();
+  if (data?.brand) {
+    return {
+      brandName: data.brand.brandName,
+      keywords: data.brand.keywords,
+      sources: data.brand.sources,
+    };
+  }
+  return null;
+};

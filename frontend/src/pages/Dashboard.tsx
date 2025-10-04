@@ -14,12 +14,14 @@ import {
   ArrowLeft,
   TrendingUp,
   TrendingDown,
+  Settings,
 } from 'lucide-react';
 import { mockDashboardData } from '@/utils/mockData';
-import { MetricCard, PriorityIssueCard } from '@/components/dashboard';
+import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
 
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const data = mockDashboardData;
 
   return (
@@ -52,6 +54,13 @@ function Dashboard() {
                   <option value="90d">Останні 90 днів</option>
                 </select>
               </div>
+              <button
+                onClick={() => setIsFilterModalOpen(true)}
+                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                Фільтри
+              </button>
               <Link
                 to="/support"
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
@@ -59,10 +68,10 @@ function Dashboard() {
                 <MessageSquare className="w-4 h-4" />
                 Сапорт
               </Link>
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+              {/* <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 Експорт
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -261,6 +270,16 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Filter Edit Modal */}
+      <FilterEditModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onSave={() => {
+          // Optionally refresh data or show success message
+          console.log('Filters updated successfully');
+        }}
+      />
     </div>
   );
 }
