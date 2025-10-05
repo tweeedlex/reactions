@@ -12,6 +12,7 @@ export interface Comment {
   replies: number;
   url: string;
   highlightedKeywords?: string[];
+  localStatus?: 'open' | 'closed';
 }
 
 export interface KeywordAlert {

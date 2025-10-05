@@ -254,3 +254,64 @@ export const getCompanyStatus = (): boolean | null => {
 export const clearCompanyStatus = (): void => {
   localStorage.removeItem(COMPANY_STATUS_KEY);
 };
+
+// Функції для роботи з локальним статусом тікетів
+const TICKET_STATUS_KEY = 'brand_defender_ticket_statuses';
+
+export interface TicketStatus {
+  ticketId: number;
+  status: 'open' | 'closed';
+  updatedAt: string;
+}
+
+export const saveTicketStatus = (ticketId: number, status: 'open' | 'closed'): void => {
+  try {
+    const statuses = getTicketStatuses();
+    const ticketStatus: TicketStatus = {
+      ticketId,
+      status,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Знаходимо існуючий статус або додаємо новий
+    const existingIndex = statuses.findIndex(ts => ts.ticketId === ticketId);
+    if (existingIndex >= 0) {
+      statuses[existingIndex] = ticketStatus;
+    } else {
+      statuses.push(ticketStatus);
+    }
+    
+    localStorage.setItem(TICKET_STATUS_KEY, JSON.stringify(statuses));
+  } catch (error) {
+    console.error('Error saving ticket status:', error);
+  }
+};
+
+export const getTicketStatuses = (): TicketStatus[] => {
+  try {
+    const data = localStorage.getItem(TICKET_STATUS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Error getting ticket statuses:', error);
+    return [];
+  }
+};
+
+export const getTicketStatus = (ticketId: number): 'open' | 'closed' | null => {
+  try {
+    const statuses = getTicketStatuses();
+    const ticketStatus = statuses.find(ts => ts.ticketId === ticketId);
+    return ticketStatus ? ticketStatus.status : null;
+  } catch (error) {
+    console.error('Error getting ticket status:', error);
+    return null;
+  }
+};
+
+export const clearTicketStatuses = (): void => {
+  try {
+    localStorage.removeItem(TICKET_STATUS_KEY);
+  } catch (error) {
+    console.error('Error clearing ticket statuses:', error);
+  }
+};

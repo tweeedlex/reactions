@@ -1,5 +1,6 @@
 import supabase from './supabase';
 import type { SupportTicket } from '@/types';
+import { saveTicketStatus, getTicketStatus } from './localStorage';
 
 export class SupportService {
   /**
@@ -46,7 +47,7 @@ export class SupportService {
     updates: Partial<Pick<SupportTicket, 'status_title' | 'ai_ton_of_voice_value' | 'ai_suggested_answer_text'>>
   ): Promise<SupportTicket> {
     const { data, error } = await supabase
-      .from('support_tickets') // Використовуємо основну таблицю для оновлення
+      .from('v_company_support_tickets') // Використовуємо основну таблицю для оновлення
       .update(updates)
       .eq('id', ticketId)
       .select()
@@ -58,6 +59,45 @@ export class SupportService {
     }
 
     return data;
+  }
+
+  /**
+   * Оновити статус тікета через основну таблицю
+   */
+  static async updateTicketStatus(
+    ticketId: number, 
+    statusTitle: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('v_company_support_tickets')
+      .update({ status_title: statusTitle })
+      .eq('id', ticketId);
+
+    if (error) {
+      console.error('Error updating ticket status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Закрити тікет (локально)
+   */
+  static async closeTicket(ticketId: number): Promise<void> {
+    saveTicketStatus(ticketId, 'closed');
+  }
+
+  /**
+   * Відкрити тікет (локально)
+   */
+  static async reopenTicket(ticketId: number): Promise<void> {
+    saveTicketStatus(ticketId, 'open');
+  }
+
+  /**
+   * Отримати локальний статус тікета
+   */
+  static getLocalTicketStatus(ticketId: number): 'open' | 'closed' | null {
+    return getTicketStatus(ticketId);
   }
 
   /**
@@ -91,7 +131,8 @@ export class SupportService {
       likes: 0, // Не маємо даних про лайки
       replies: 0, // Не маємо даних про відповіді
       url: ticket.ai_company_answer_data_source_url || '#',
-      highlightedKeywords: ticket.tags_array || []
+      highlightedKeywords: ticket.tags_array || [],
+      localStatus: this.getLocalTicketStatus(ticket.id) || 'open' // Додаємо локальний статус
     };
   }
 

@@ -1,16 +1,26 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, AlertCircle, RefreshCw, Filter } from 'lucide-react';
 import type { Comment } from '@/types';
 import { CommentCard, ResponseConstructor } from '@/components/support';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSupportTickets } from '@/hooks/useSupportTickets';
+import { useSupportTickets, type TicketStatusFilter } from '@/hooks/useSupportTickets';
 
 function SupportPage() {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<import('@/types').SupportTicket | null>(null);
   const { userRole } = useAuth();
-  const { tickets, comments, loading, error, refetch } = useSupportTickets();
+  const { 
+    tickets, 
+    comments, 
+    loading, 
+    error, 
+    refetch, 
+    statusFilter, 
+    setStatusFilter, 
+    closeTicket, 
+    reopenTicket 
+  } = useSupportTickets();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -32,6 +42,20 @@ function SupportPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Фільтр статусу */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as TicketStatusFilter)}
+                  className="bg-slate-800 border border-gray-600 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="all">Всі тікети</option>
+                  <option value="open">Відкриті</option>
+                  <option value="closed">Закриті</option>
+                </select>
+              </div>
+              
               <button
                 onClick={refetch}
                 disabled={loading}
@@ -109,6 +133,8 @@ function SupportPage() {
             <ResponseConstructor 
               selectedComment={selectedComment} 
               selectedTicket={selectedTicket}
+              onCloseTicket={closeTicket}
+              onReopenTicket={reopenTicket}
             />
           </div>
         </div>

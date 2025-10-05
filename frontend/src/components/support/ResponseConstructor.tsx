@@ -1,50 +1,68 @@
 import { useState, useEffect } from 'react';
-import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink } from 'lucide-react';
-import type { Comment, ResponseStyle, SupportTicket } from '@/types';
+import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink, X, RotateCcw } from 'lucide-react';
+import type { Comment, SupportTicket } from '@/types';
 import { generateResponse } from '@/utils/responseTemplates';
 import { supportService } from '@/utils/supportService';
 
 interface ResponseConstructorProps {
   selectedComment: Comment | null;
   selectedTicket?: SupportTicket | null;
+  onCloseTicket?: (ticketId: number) => Promise<void>;
+  onReopenTicket?: (ticketId: number) => Promise<void>;
 }
 
-export function ResponseConstructor({ selectedComment, selectedTicket }: ResponseConstructorProps) {
+export function ResponseConstructor({ 
+  selectedComment, 
+  selectedTicket, 
+  onCloseTicket, 
+  onReopenTicket 
+}: ResponseConstructorProps) {
   const [responseText, setResponseText] = useState('');
-  const [responseStyle, setResponseStyle] = useState<ResponseStyle>('friendly');
   const [aiResponse, setAiResponse] = useState<string>('');
-  const [useAiResponse, setUseAiResponse] = useState(false);
 
   // Завантажуємо AI відповідь при виборі тікета
   useEffect(() => {
     if (selectedTicket?.ai_suggested_answer_text) {
       setAiResponse(selectedTicket.ai_suggested_answer_text);
-      setUseAiResponse(true);
       setResponseText(selectedTicket.ai_suggested_answer_text);
     } else {
       setAiResponse('');
-      setUseAiResponse(false);
       setResponseText('');
     }
   }, [selectedTicket]);
 
   const handleGenerateResponse = () => {
     if (selectedComment) {
-      const response = generateResponse(selectedComment, responseStyle);
+      const response = generateResponse(selectedComment, 'friendly');
       setResponseText(response);
-      setUseAiResponse(false);
     }
   };
 
   const handleUseAiResponse = () => {
     if (aiResponse) {
       setResponseText(aiResponse);
-      setUseAiResponse(true);
     }
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(responseText);
+  };
+
+  // Перевіряємо чи тікет закритий (використовуємо локальний статус)
+  const localStatus = selectedTicket ? supportService.getLocalTicketStatus(selectedTicket.id) : null;
+  const isTicketClosed = localStatus === 'closed';
+
+  // Обробники для закриття/відкриття тікета
+  const handleCloseTicket = async () => {
+    if (selectedTicket && onCloseTicket) {
+      await onCloseTicket(selectedTicket.id);
+    }
+  };
+
+  const handleReopenTicket = async () => {
+    if (selectedTicket && onReopenTicket) {
+      await onReopenTicket(selectedTicket.id);
+    }
   };
 
   if (!selectedComment) {
@@ -80,7 +98,12 @@ export function ResponseConstructor({ selectedComment, selectedTicket }: Respons
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <span className="text-gray-400">Статус:</span>
-                  <span className="ml-2 text-white">{selectedTicket.status_title}</span>
+                  <span className="ml-2 text-white">
+                    {localStatus ? (localStatus === 'open' ? 'Відкрито' : 'Закрито') : selectedTicket.status_title}
+                    {/* {localStatus && (
+                      <span className="ml-1 text-xs text-yellow-400">(локально)</span>
+                    )} */}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-400">Тип:</span>
@@ -176,22 +199,48 @@ export function ResponseConstructor({ selectedComment, selectedTicket }: Respons
         />
       </div>
 
-      <div className="flex gap-3">
-        <button
-          onClick={copyToClipboard}
-          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-          disabled={!responseText}
-        >
-          <Copy className="w-4 h-4" />
-          Копіювати
-        </button>
-        <button
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-          disabled={!responseText}
-        >
-          <Send className="w-4 h-4" />
-          Відправити
-        </button>
+      <div className="space-y-3">
+        {/* Кнопки копіювання та відправки */}
+        <div className="flex gap-3">
+          <button
+            onClick={copyToClipboard}
+            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={!responseText}
+          >
+            <Copy className="w-4 h-4" />
+            Копіювати
+          </button>
+          <button
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={!responseText}
+          >
+            <Send className="w-4 h-4" />
+            Відправити
+          </button>
+        </div>
+
+        {/* Кнопки управління статусом тікета */}
+        {selectedTicket && (
+          <div className="flex gap-3">
+            {!isTicketClosed ? (
+              <button
+                onClick={handleCloseTicket}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Закрити тікет
+              </button>
+            ) : (
+              <button
+                onClick={handleReopenTicket}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Відкрити тікет
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
