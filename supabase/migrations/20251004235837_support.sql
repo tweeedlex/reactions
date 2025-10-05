@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS public.company_tags (
 -- Create tickets_status dictionary table
 CREATE TABLE IF NOT EXISTS dictionaries.tickets_status (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    title text NOT NULL UNIQUE
 );
 
 -- Create msg_ticket_types dictionary table
@@ -31,7 +30,7 @@ CREATE TABLE IF NOT EXISTS dictionaries.msg_ticket_types (
 -- Create main company_support_tickets table
 CREATE TABLE IF NOT EXISTS public.company_support_tickets (
     id SERIAL PRIMARY KEY,
-    message_id INTEGER NOT NULL REFERENCES public.company_messages(id) ON DELETE CASCADE,
+    message_id INTEGER NOT NULL REFERENCES crawler.company_messages(id) ON DELETE CASCADE,
     status_id INTEGER NOT NULL REFERENCES dictionaries.tickets_status(id),
     ticket_type_id INTEGER NOT NULL REFERENCES dictionaries.msg_ticket_types(id),
     tags_array TEXT[] DEFAULT '{}',
@@ -77,8 +76,7 @@ INSERT INTO dictionaries.tickets_status (title) VALUES
     ('Open'),
     ('In Progress'),
     ('Solved'),
-    ('Closed'),
-    ('Pending')
+    ('Closed')
 ON CONFLICT (title) DO NOTHING;
 
 
@@ -97,7 +95,7 @@ SELECT
     ama.ton_of_voice_value AS ai_ton_of_voice_value,
     mtov.title AS ai_ton_of_voice_title,
     ama.tags_array,
-    amas.answer_text AS ai_suggested_answer_text,
+    ama.answer_text AS ai_suggested_answer_text,
     acfus.title AS ai_company_answer_data_source_title,
     acfus.url AS ai_company_answer_data_source_url,
 
@@ -110,17 +108,15 @@ SELECT
     
 FROM public.company_support_tickets cst
 -- Join with messages
-LEFT JOIN public.company_messages cm ON cst.message_id = cm.id
+LEFT JOIN crawler.company_messages cm ON cst.message_id = cm.id
 -- Join with AI analysis
 LEFT JOIN public.ai_msg_analyze ama ON cm.id = ama.msg_id
 -- Join with ticket types
 LEFT JOIN dictionaries.msg_ticket_types mtt ON cst.ticket_type_id = mtt.id
 -- Join with status
 LEFT JOIN dictionaries.tickets_status ts ON cst.status_id = ts.id
--- Join with AI answer suggestions
-LEFT JOIN public.ai_msg_answers_suggestions amas ON ama.id = amas.llm_msg_an_id
 -- Join with AI data sources
-LEFT JOIN public.ai_company_faq_url_sources acfus ON amas.company_answer_data_source_id = acfus.id
+LEFT JOIN public.ai_company_faq_url_sources acfus ON ama.company_answer_data_source_id = acfus.id
 -- Join with ton of voice (find closest value)
 LEFT JOIN dictionaries.msg_ton_of_voices mtov ON (
     mtov.value = (

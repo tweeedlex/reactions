@@ -28,30 +28,24 @@ INSERT INTO dictionaries.msg_ticket_types (company_id, title, priority_rank) VAL
     (2, 'Питання про продукт', 3)
 ON CONFLICT DO NOTHING;
 
--- Спочатку створимо повідомлення в public.company_messages
-INSERT INTO public.company_messages (task_id, text, context) VALUES 
-    (1, 'Користувач повідомив про проблеми з нагадуваннями про бонуси', 'Користувач: user123, Рейтинг: 5, Дата: 2024-01-15'),
-    (2, 'Скарга на рекламу та проблеми з фільтрами продавців', 'Користувач: user123, Рейтинг: 5, Дата: 2024-01-15'),
-    (3, 'Проблема з запуском додатку без Google Play', 'Користувач: user123, Рейтинг: 5, Дата: 2024-01-15'),
-    (4, 'Скарга на затримки доставки та високу вартість', 'Користувач: user123, Рейтинг: 5, Дата: 2024-01-15'),
-    (5, 'Проблеми з гарячою лінією та надмірною рекламою', 'Користувач: user123, Рейтинг: 5, Дата: 2024-01-15')
-ON CONFLICT DO NOTHING;
+-- Повідомлення вже створені в crawler.company_messages через seed/03_crawler_tasks.sql
+-- Тому тут не потрібно їх створювати знову
 
 -- Додаємо тестові тікети підтримки
-INSERT INTO public.company_support_tickets (
-    message_id, 
-    status_id, 
-    ticket_type_id, 
-    tags_array, 
-    updated_user_id
-) VALUES 
-    -- Тікети компанії 1
-    (1, 1, 1, ARRAY['терміново', 'технічне'], NULL),
-    (2, 2, 2, ARRAY['оплата', 'скарга-клієнта'], NULL),
-    (3, 1, 3, ARRAY['запит-функції'], NULL),
-    (4, 3, 4, ARRAY['звіт-про-помилку', 'терміново'], NULL),
-    (5, 1, 5, ARRAY['загальне'], NULL)
-ON CONFLICT DO NOTHING;
+-- INSERT INTO public.company_support_tickets (
+--     message_id, 
+--     status_id, 
+--     ticket_type_id, 
+--     tags_array, 
+--     updated_user_id
+-- ) VALUES 
+--     -- Тікети компанії 1
+--     (1, 1, 1, ARRAY['терміново', 'технічне'], NULL),
+--     (2, 2, 2, ARRAY['оплата', 'скарга-клієнта'], NULL),
+--     (3, 1, 3, ARRAY['запит-функції'], NULL),
+--     (4, 3, 4, ARRAY['звіт-про-помилку', 'терміново'], NULL),
+--     (5, 1, 5, ARRAY['загальне'], NULL)
+-- ON CONFLICT DO NOTHING;
 
 -- Використовуємо існуючі повідомлення з crawler.company_messages (task_id 3,4,5,6,7)
 -- Ці повідомлення вже існують від успішно виконаних завдань
