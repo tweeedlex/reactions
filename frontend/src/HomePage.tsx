@@ -21,6 +21,12 @@ function HomePage() {
                             <a href="#pricing" className="text-gray-300 hover:text-purple-400 transition-colors">Ціни</a>
                             <a href="#contact" className="text-gray-300 hover:text-purple-400 transition-colors">Контакти</a>
                             <Link 
+                                to="/parsing"
+                                className="text-gray-300 hover:text-purple-400 transition-colors"
+                            >
+                                Парсинг
+                            </Link>
+                            <Link 
                                 to="/dashboard"
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
                             >
@@ -43,6 +49,12 @@ function HomePage() {
                             <a href="#features" className="block text-gray-300 hover:text-purple-400">Можливості</a>
                             <a href="#pricing" className="block text-gray-300 hover:text-purple-400">Ціни</a>
                             <a href="#contact" className="block text-gray-300 hover:text-purple-400">Контакти</a>
+                            <Link 
+                                to="/parsing"
+                                className="block text-gray-300 hover:text-purple-400"
+                            >
+                                Парсинг
+                            </Link>
                             <Link 
                                 to="/dashboard"
                                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg"

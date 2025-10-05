@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест інтеграції Google Maps</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        input[type="url"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест інтеграції Google Maps</h1>
+    
+    <div class="test-section info">
+        <h3>1. Перевірка підключення до бекенду</h3>
+        <button onclick="testBackendConnection()">Тестувати підключення</button>
+        <div id="backend-result" class="result"></div>
+    </div>
+
+    <div class="test-section info">
+        <h3>2. Тест Google Maps API</h3>
+        <button onclick="testGoogleMapsAPI()">Тестувати Google Maps API</button>
+        <div id="googlemaps-result" class="result"></div>
+    </div>
+
+    <div class="test-section info">
+        <h3>3. Тест парсингу Google Maps</h3>
+        <input type="url" id="googlemaps-url" placeholder="https://www.google.com/maps/place/..." 
+               value="https://www.google.com/maps/place/Starbucks/@40.7128,-74.0060,17z">
+        <button onclick="testGoogleMapsParsing()">Парсити відгуки</button>
+        <div id="parsing-result" class="result"></div>
+    </div>
+
+    <div class="test-section info">
+        <h3>4. Тест стандартного парсингу</h3>
+        <input type="url" id="standard-url" placeholder="https://play.google.com/store/apps/details?id=..." 
+               value="https://play.google.com/store/apps/details?id=com.whatsapp">
+        <button onclick="testStandardParsing()">Парсити додаток</button>
+        <div id="standard-result" class="result"></div>
+    </div>
+
+    <div class="test-section info">
+        <h3>5. Перевірка коментарів</h3>
+        <button onclick="testComments()">Завантажити коментарі</button>
+        <div id="comments-result" class="result"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3000';
+        const FRONTEND_URL = 'http://localhost:5173';
+
+        async function testBackendConnection() {
+            const resultDiv = document.getElementById('backend-result');
+            try {
+                const response = await fetch(`${BACKEND_URL}/`);
+                const text = await response.text();
+                resultDiv.textContent = `✅ Бекенд працює: ${text}`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка підключення: ${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        async function testGoogleMapsAPI() {
+            const resultDiv = document.getElementById('googlemaps-result');
+            try {
+                const response = await fetch(`${BACKEND_URL}/google-maps/test-serpapi`);
+                const data = await response.json();
+                resultDiv.textContent = `✅ Google Maps API: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка Google Maps API: ${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        async function testGoogleMapsParsing() {
+            const resultDiv = document.getElementById('parsing-result');
+            const url = document.getElementById('googlemaps-url').value;
+            
+            if (!url) {
+                resultDiv.textContent = '❌ Будь ласка, введіть URL';
+                resultDiv.parentElement.className = 'test-section error';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/google-maps/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await response.json();
+                resultDiv.textContent = `✅ Результат парсингу: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка парсингу: ${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        async function testStandardParsing() {
+            const resultDiv = document.getElementById('standard-result');
+            const url = document.getElementById('standard-url').value;
+            
+            if (!url) {
+                resultDiv.textContent = '❌ Будь ласка, введіть URL';
+                resultDiv.parentElement.className = 'test-section error';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/parsing/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const data = await response.json();
+                resultDiv.textContent = `✅ Результат парсингу: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка парсингу: ${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        async function testComments() {
+            const resultDiv = document.getElementById('comments-result');
+            try {
+                const response = await fetch(`${BACKEND_URL}/comments`);
+                const data = await response.json();
+                resultDiv.textContent = `✅ Знайдено ${data.length} коментарів:\n${JSON.stringify(data.slice(0, 3), null, 2)}${data.length > 3 ? '\n...' : ''}`;
+                resultDiv.parentElement.className = 'test-section success';
+            } catch (error) {
+                resultDiv.textContent = `❌ Помилка завантаження коментарів: ${error.message}`;
+                resultDiv.parentElement.className = 'test-section error';
+            }
+        }
+
+        // Автоматично тестуємо підключення при завантаженні
+        window.onload = function() {
+            testBackendConnection();
+        };
+    </script>
+</body>
+</html>
