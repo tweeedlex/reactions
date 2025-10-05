@@ -11,7 +11,9 @@ import { SerperModule } from './serper/serper.module';
 import { UniversalParsingModule } from './universal-parsing/universal-parsing.module';
 import { SerperParsingModule } from './serper-parsing/serper-parsing.module';
 import { UrlParsingModule } from './url-parsing/url-parsing.module';
+import { InstagramParsingModule } from './instagram-parsing/instagram-parsing.module';
 import { Comment } from './comments/entities/comment.entity';
+import { InstagramComment } from './instagram-parsing/entities/instagram-comment.entity';
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { Comment } from './comments/entities/comment.entity';
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'reactions.db',
-      entities: [Comment],
+      entities: [Comment, InstagramComment],
       synchronize: true, // Тільки для розробки
     }),
     CommentsModule,
@@ -32,6 +34,7 @@ import { Comment } from './comments/entities/comment.entity';
     UniversalParsingModule,
     SerperParsingModule,
     UrlParsingModule,
+    InstagramParsingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

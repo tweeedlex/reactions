@@ -27,6 +27,12 @@ function HomePage() {
                                 Парсинг
                             </Link>
                             <Link 
+                                to="/instagram"
+                                className="text-gray-300 hover:text-purple-400 transition-colors"
+                            >
+                                Instagram
+                            </Link>
+                            <Link 
                                 to="/dashboard"
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
                             >
@@ -54,6 +60,12 @@ function HomePage() {
                                 className="block text-gray-300 hover:text-purple-400"
                             >
                                 Парсинг
+                            </Link>
+                            <Link 
+                                to="/instagram"
+                                className="block text-gray-300 hover:text-purple-400"
+                            >
+                                Instagram
                             </Link>
                             <Link 
                                 to="/dashboard"
