@@ -1,0 +1,35 @@
+{
+  "name": "llm-bot",
+  "version": "1.0.0",
+  "description": "LLM Bot for message analysis with Supabase integration",
+  "main": "llm-bot.js",
+  "scripts": {
+    "start": "node llm-bot.js",
+    "dev": "nodemon llm-bot.js",
+    "setup": "./setup-env.sh",
+    "test:auto": "node test-auto-analysis.js",
+    "queue:process": "node process-queue.js",
+    "docker:build": "docker build -t llm-bot .",
+    "docker:run": "docker run -p 3001:3001 --env-file .env llm-bot",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": ["llm", "supabase", "ai", "analysis", "bot"],
+  "author": "Hack Universe",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
