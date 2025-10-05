@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест AI API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .loading { color: #fbbf24; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4f46e5; }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            min-height: 100px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #333;
+            border-left: 4px solid #6366f1;
+        }
+        .tone-professional { border-left-color: #3b82f6; }
+        .tone-friendly { border-left-color: #10b981; }
+        .tone-apologetic { border-left-color: #f59e0b; }
+        .tone-grateful { border-left-color: #8b5cf6; }
+    </style>
+</head>
+<body>
+    <h1>🤖 Тест AI API</h1>
+    
+    <div class="section">
+        <h2>📝 Тест генерації відповідей</h2>
+        <textarea id="feedbackText" placeholder="Введіть текст відгуку для тестування AI...">Дуже довго чекали замовлення, але товар чудовий. Рекомендую!</textarea>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
+            <select id="sentiment" style="padding: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 4px;">
+                <option value="positive">Позитивний</option>
+                <option value="negative">Негативний</option>
+                <option value="neutral">Нейтральний</option>
+            </select>
+            <select id="source" style="padding: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 4px;">
+                <option value="playstore">Google Play</option>
+                <option value="instagram">Instagram</option>
+                <option value="googlemaps">Google Maps</option>
+            </select>
+        </div>
+        <button onclick="testAI()">Генерувати відповідь</button>
+        <div id="aiResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Швидкі тести</h2>
+        <button onclick="testPositive()">Тест позитивного відгуку</button>
+        <button onclick="testNegative()">Тест негативного відгуку</button>
+        <button onclick="testQuestion()">Тест питання</button>
+        <button onclick="testComplaint()">Тест скарги</button>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        async function testAI() {
+            const text = document.getElementById('feedbackText').value;
+            const sentiment = document.getElementById('sentiment').value;
+            const source = document.getElementById('source').value;
+            const resultDiv = document.getElementById('aiResult');
+            
+            if (!text.trim()) {
+                alert('Введіть текст відгуку');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Генеруємо відповідь...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai/generate-response`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        sentiment: sentiment,
+                        source: source,
+                        author: 'Тестовий користувач',
+                        category: 'загальний'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const toneClass = `tone-${data.tone}`;
+                    resultDiv.className = `result ${toneClass}`;
+                    resultDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong class="success">✅ AI відповідь згенерована!</strong>
+                            <span style="background: #444; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+                                ${Math.round(data.confidence * 100)}% впевненості
+                            </span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Тон:</strong> ${getToneText(data.tone)} | 
+                            <strong>Категорія:</strong> ${getCategoryText(data.category)}
+                        </div>
+                        <div style="background: #2a2a2a; padding: 15px; border-radius: 6px; border-left: 4px solid #6366f1;">
+                            <strong>Відповідь:</strong><br>
+                            ${data.suggestion}
+                        </div>
+                        <button onclick="copyResponse('${data.suggestion.replace(/'/g, "\\'")}')" style="margin-top: 10px; background: #8b5cf6;">
+                            📋 Копіювати відповідь
+                        </button>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Помилка генерації</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        function testPositive() {
+            document.getElementById('feedbackText').value = 'Дуже чудовий додаток! Дякую розробникам за таку корисну програму. Рекомендую всім!';
+            document.getElementById('sentiment').value = 'positive';
+            testAI();
+        }
+
+        function testNegative() {
+            document.getElementById('feedbackText').value = 'Погано працює, постійно зависає. Коли виправлять ці баги?';
+            document.getElementById('sentiment').value = 'negative';
+            testAI();
+        }
+
+        function testQuestion() {
+            document.getElementById('feedbackText').value = 'Чи є можливість додати нові функції? Коли очікувати оновлення?';
+            document.getElementById('sentiment').value = 'neutral';
+            testAI();
+        }
+
+        function testComplaint() {
+            document.getElementById('feedbackText').value = 'Скаржуся на поганий сервіс! Довго чекав відповіді, але так і не отримав.';
+            document.getElementById('sentiment').value = 'negative';
+            testAI();
+        }
+
+        function getToneText(tone) {
+            const tones = {
+                'professional': 'Професійний',
+                'friendly': 'Дружній', 
+                'apologetic': 'Вибачливий',
+                'grateful': 'Вдячний'
+            };
+            return tones[tone] || tone;
+        }
+
+        function getCategoryText(category) {
+            const categories = {
+                'complaint': 'Скарга',
+                'praise': 'Похвала',
+                'question': 'Питання',
+                'suggestion': 'Пропозиція'
+            };
+            return categories[category] || category;
+        }
+
+        async function copyResponse(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('Відповідь скопійована в буфер обміну!');
+            } catch (err) {
+                console.error('Помилка копіювання:', err);
+            }
+        }
+    </script>
+</body>
+</html>

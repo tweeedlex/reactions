@@ -6,3 +6,4 @@ echo "export APIFY_API_TOKEN=apify_api_AOs1ufgCUzb2oLmuAjzEW1qiBhqQRW3jMEha" >> 
 
 echo "Змінні середовища для Instagram парсингу додано!"
 echo "Перезапустіть термінал або виконайте: source ~/.bashrc"
+

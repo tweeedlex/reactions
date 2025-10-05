@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Instagram API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .loading { color: #fbbf24; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4f46e5; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #333;
+            border-left: 4px solid #6366f1;
+        }
+        .comment {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #8b5cf6;
+        }
+    </style>
+</head>
+<body>
+    <h1>📸 Тест Instagram API</h1>
+    
+    <div class="section">
+        <h2>🔗 Тест парсингу Instagram поста</h2>
+        <input id="instagramUrl" type="text" placeholder="Введіть URL Instagram поста..." value="https://www.instagram.com/p/ABC123/">
+        <button onclick="testInstagramParse()">Парсити Instagram</button>
+        <div id="instagramResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Швидкі тести</h2>
+        <button onclick="testValidUrl()">Тест валідного URL</button>
+        <button onclick="testInvalidUrl()">Тест невалідного URL</button>
+        <button onclick="testEmptyUrl()">Тест порожнього URL</button>
+    </div>
+
+    <div class="section">
+        <h2>📊 Статистика API</h2>
+        <button onclick="getInstagramStats()">Отримати статистику</button>
+        <div id="statsResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        async function testInstagramParse() {
+            const url = document.getElementById('instagramUrl').value;
+            const resultDiv = document.getElementById('instagramResult');
+            
+            if (!url.trim()) {
+                alert('Введіть URL Instagram поста');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Парсимо Instagram пост...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/instagram-parsing/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        urls: [url],
+                        maxComments: 50
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const commentsCount = Array.isArray(data) ? data.length : 0;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Instagram пост успішно оброблено!</div>
+                        <div style="margin: 10px 0;">
+                            <strong>Знайдено коментарів:</strong> ${commentsCount}
+                        </div>
+                        ${commentsCount > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong>Останні коментарі:</strong>
+                                ${data.slice(0, 3).map(comment => `
+                                    <div class="comment">
+                                        <strong>${comment.authorUsername || 'Невідомий'}:</strong><br>
+                                        ${comment.text || 'Без тексту'}
+                                        <div style="font-size: 12px; color: #888; margin-top: 5px;">
+                                            Лайків: ${comment.likesCount || 0} | 
+                                            Дата: ${new Date(comment.timestamp).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Помилка парсингу Instagram</div>
+                        <div><strong>Помилка:</strong> ${data.message || 'Невідома помилка'}</div>
+                        <div><strong>Деталі:</strong> ${JSON.stringify(data, null, 2)}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Помилка з'єднання</div>
+                    <div><strong>Деталі:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        function testValidUrl() {
+            document.getElementById('instagramUrl').value = 'https://www.instagram.com/p/ABC123/';
+            testInstagramParse();
+        }
+
+        function testInvalidUrl() {
+            document.getElementById('instagramUrl').value = 'https://invalid-url.com';
+            testInstagramParse();
+        }
+
+        function testEmptyUrl() {
+            document.getElementById('instagramUrl').value = '';
+            testInstagramParse();
+        }
+
+        async function getInstagramStats() {
+            const resultDiv = document.getElementById('statsResult');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Отримуємо статистику...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/instagram-parsing/comments`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const totalComments = Array.isArray(data) ? data.length : 0;
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Статистика отримана!</div>
+                        <div style="margin: 10px 0;">
+                            <strong>Всього коментарів в БД:</strong> ${totalComments}
+                        </div>
+                        ${totalComments > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong>Останні коментарі:</strong>
+                                ${data.slice(0, 5).map(comment => `
+                                    <div class="comment">
+                                        <strong>${comment.authorUsername || 'Невідомий'}:</strong><br>
+                                        ${comment.text || 'Без тексту'}
+                                        <div style="font-size: 12px; color: #888; margin-top: 5px;">
+                                            Пост: ${comment.postUrl || 'Невідомий'}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Помилка отримання статистики</div>
+                        <div><strong>Помилка:</strong> ${data.message || 'Невідома помилка'}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Помилка з'єднання</div>
+                    <div><strong>Деталі:</strong> ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

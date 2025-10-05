@@ -21,22 +21,22 @@ function HomePage() {
                             <a href="#pricing" className="text-gray-300 hover:text-purple-400 transition-colors">Ціни</a>
                             <a href="#contact" className="text-gray-300 hover:text-purple-400 transition-colors">Контакти</a>
                             <Link 
-                                to="/parsing"
+                                to="/sources"
                                 className="text-gray-300 hover:text-purple-400 transition-colors"
                             >
-                                Парсинг
-                            </Link>
-                            <Link 
-                                to="/instagram"
-                                className="text-gray-300 hover:text-purple-400 transition-colors"
-                            >
-                                Instagram
+                                Джерела
                             </Link>
                             <Link 
                                 to="/dashboard"
                                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
                             >
                                 Дашборд
+                            </Link>
+                            <Link 
+                                to="/kanban"
+                                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105"
+                            >
+                                Kanban
                             </Link>
                         </div>
 
@@ -56,22 +56,22 @@ function HomePage() {
                             <a href="#pricing" className="block text-gray-300 hover:text-purple-400">Ціни</a>
                             <a href="#contact" className="block text-gray-300 hover:text-purple-400">Контакти</a>
                             <Link 
-                                to="/parsing"
+                                to="/sources"
                                 className="block text-gray-300 hover:text-purple-400"
                             >
-                                Парсинг
-                            </Link>
-                            <Link 
-                                to="/instagram"
-                                className="block text-gray-300 hover:text-purple-400"
-                            >
-                                Instagram
+                                Джерела
                             </Link>
                             <Link 
                                 to="/dashboard"
-                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg"
+                                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg mb-2"
                             >
                                 Дашборд
+                            </Link>
+                            <Link 
+                                to="/kanban"
+                                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-lg"
+                            >
+                                Kanban
                             </Link>
                         </div>
                     </div>

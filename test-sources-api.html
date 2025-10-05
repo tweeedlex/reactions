@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API Джерел</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .loading { color: #fbbf24; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4f46e5; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест API Джерел</h1>
+    
+    <div class="section">
+        <h2>📸 Instagram API</h2>
+        <input type="url" id="instagramUrl" placeholder="https://www.instagram.com/p/..." />
+        <button onclick="testInstagram()">Тест Instagram</button>
+        <div id="instagramResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>📱 Google Play API</h2>
+        <input type="url" id="playMarketUrl" placeholder="https://play.google.com/store/apps/details?id=..." />
+        <button onclick="testPlayMarket()">Тест Google Play</button>
+        <div id="playMarketResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>🗺️ Google Maps API</h2>
+        <input type="url" id="googleMapsUrl" placeholder="https://maps.app.goo.gl/..." />
+        <button onclick="testGoogleMaps()">Тест Google Maps</button>
+        <div id="googleMapsResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Kanban API</h2>
+        <button onclick="testKanban()">Тест Kanban</button>
+        <div id="kanbanResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        async function testInstagram() {
+            const url = document.getElementById('instagramUrl').value;
+            const resultDiv = document.getElementById('instagramResult');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<span class="error">Введіть URL Instagram поста</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<span class="loading">Тестуємо Instagram API...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/instagram-parsing/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Instagram API працює!</span><br>
+                        <strong>Результат:</strong> ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Instagram API помилка</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testPlayMarket() {
+            const url = document.getElementById('playMarketUrl').value;
+            const resultDiv = document.getElementById('playMarketResult');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<span class="error">Введіть URL Google Play</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<span class="loading">Тестуємо Google Play API...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/parsing/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Google Play API працює!</span><br>
+                        <strong>Результат:</strong> ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Google Play API помилка</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testGoogleMaps() {
+            const url = document.getElementById('googleMapsUrl').value;
+            const resultDiv = document.getElementById('googleMapsResult');
+            
+            if (!url) {
+                resultDiv.innerHTML = '<span class="error">Введіть URL Google Maps</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<span class="loading">Тестуємо Google Maps API...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/google-maps/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Google Maps API працює!</span><br>
+                        <strong>Результат:</strong> ${JSON.stringify(data, null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Google Maps API помилка</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testKanban() {
+            const resultDiv = document.getElementById('kanbanResult');
+            resultDiv.innerHTML = '<span class="loading">Тестуємо Kanban API...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/feedbacks/prioritized`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Kanban API працює!</span><br>
+                        <strong>Знайдено відгуків:</strong> ${data.length}<br>
+                        <strong>Перші 3:</strong> ${JSON.stringify(data.slice(0, 3), null, 2)}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Kanban API помилка</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        // Автоматично заповнити тестові URL
+        document.getElementById('instagramUrl').value = 'https://www.instagram.com/p/example/';
+        document.getElementById('playMarketUrl').value = 'https://play.google.com/store/apps/details?id=com.example.app';
+        document.getElementById('googleMapsUrl').value = 'https://maps.app.goo.gl/example';
+    </script>
+</body>
+</html>

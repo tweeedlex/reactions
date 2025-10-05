@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Google Maps API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .loading { color: #fbbf24; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4f46e5; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #333;
+            border-left: 4px solid #6366f1;
+        }
+        .timeout-warning {
+            background: #f59e0b;
+            color: #1f2937;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ Тест Google Maps API</h1>
+    
+    <div class="section">
+        <h2>🔗 Тест парсингу Google Maps</h2>
+        <input id="googleMapsUrl" type="text" placeholder="Введіть URL Google Maps..." value="https://maps.app.goo.gl/ABC123">
+        <button onclick="testGoogleMapsParse()">Парсити Google Maps</button>
+        <div class="timeout-warning">
+            ⚠️ Увага: Парсинг Google Maps може займати до 30 секунд через пошук місця
+        </div>
+        <div id="googleMapsResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Швидкі тести</h2>
+        <button onclick="testShortUrl()">Тест короткого URL</button>
+        <button onclick="testLongUrl()">Тест довгого URL</button>
+        <button onclick="testInvalidUrl()">Тест невалідного URL</button>
+    </div>
+
+    <div class="section">
+        <h2>🔧 Діагностика API</h2>
+        <button onclick="testSerpApiConnection()">Перевірити SerpAPI</button>
+        <button onclick="testUrlExpansion()">Розкрити URL</button>
+        <div id="diagnosticResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        async function testGoogleMapsParse() {
+            const url = document.getElementById('googleMapsUrl').value;
+            const resultDiv = document.getElementById('googleMapsResult');
+            
+            if (!url.trim()) {
+                alert('Введіть URL Google Maps');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Парсимо Google Maps (це може зайняти до 30 секунд)...</span>';
+
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/google-maps/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+                const endTime = Date.now();
+                const duration = Math.round((endTime - startTime) / 1000);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Google Maps парсинг завершено!</div>
+                        <div style="margin: 10px 0;">
+                            <strong>Час виконання:</strong> ${duration} секунд<br>
+                            <strong>Знайдено відгуків:</strong> ${data.parsedCount || 0}<br>
+                            <strong>Place ID:</strong> ${data.placeId || 'Не знайдено'}<br>
+                            <strong>URL:</strong> ${data.url}
+                        </div>
+                        <div style="margin-top: 15px; background: #2a2a2a; padding: 10px; border-radius: 4px;">
+                            <strong>Повна відповідь:</strong><br>
+                            <pre style="font-size: 12px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Помилка парсингу Google Maps</div>
+                        <div><strong>Час виконання:</strong> ${duration} секунд</div>
+                        <div><strong>Помилка:</strong> ${data.message || 'Невідома помилка'}</div>
+                        <div><strong>Деталі:</strong> ${JSON.stringify(data, null, 2)}</div>
+                    `;
+                }
+            } catch (error) {
+                const endTime = Date.now();
+                const duration = Math.round((endTime - startTime) / 1000);
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Помилка з'єднання</div>
+                    <div><strong>Час до помилки:</strong> ${duration} секунд</div>
+                    <div><strong>Деталі:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        function testShortUrl() {
+            document.getElementById('googleMapsUrl').value = 'https://maps.app.goo.gl/ABC123';
+            testGoogleMapsParse();
+        }
+
+        function testLongUrl() {
+            document.getElementById('googleMapsUrl').value = 'https://www.google.com/maps/place/Test+Place/@50.4501,30.5234,17z';
+            testGoogleMapsParse();
+        }
+
+        function testInvalidUrl() {
+            document.getElementById('googleMapsUrl').value = 'https://invalid-url.com';
+            testGoogleMapsParse();
+        }
+
+        async function testSerpApiConnection() {
+            const resultDiv = document.getElementById('diagnosticResult');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Перевіряємо SerpAPI підключення...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/google-maps/test-serpapi`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ SerpAPI підключення перевірено!</div>
+                        <div><strong>Статус:</strong> ${data.connected ? 'Підключено' : 'Не підключено'}</div>
+                        <div><strong>Повідомлення:</strong> ${data.message}</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Помилка перевірки SerpAPI</div>
+                        <div><strong>Помилка:</strong> ${data.message || 'Невідома помилка'}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Помилка з'єднання</div>
+                    <div><strong>Деталі:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testUrlExpansion() {
+            const url = document.getElementById('googleMapsUrl').value;
+            const resultDiv = document.getElementById('diagnosticResult');
+            
+            if (!url.trim()) {
+                alert('Введіть URL для розкриття');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">Розкриваємо URL...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/google-maps/expand-url`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ URL розкрито!</div>
+                        <div><strong>Оригінальний URL:</strong> ${data.originalUrl}</div>
+                        <div><strong>Розкритий URL:</strong> ${data.expandedUrl}</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Помилка розкриття URL</div>
+                        <div><strong>Помилка:</strong> ${data.message || 'Невідома помилка'}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Помилка з'єднання</div>
+                    <div><strong>Деталі:</strong> ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

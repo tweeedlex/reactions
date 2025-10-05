@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Kanban API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .loading { color: #fbbf24; }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4f46e5; }
+        .feedback-card {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+        }
+        .priority-high { border-left-color: #ef4444; }
+        .priority-medium { border-left-color: #f59e0b; }
+        .priority-low { border-left-color: #10b981; }
+        .sentiment-positive { color: #10b981; }
+        .sentiment-neutral { color: #f59e0b; }
+        .sentiment-negative { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест Kanban API</h1>
+    
+    <div class="section">
+        <h2>📊 Тест API</h2>
+        <button onclick="testKanbanAPI()">Тест Kanban API</button>
+        <button onclick="testWithFilters()">Тест з фільтрами</button>
+        <button onclick="clearResults()">Очистити</button>
+        <div id="apiResult" class="section"></div>
+    </div>
+
+    <div class="section">
+        <h2>📋 Результати</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        async function testKanbanAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<span class="loading">Тестуємо Kanban API...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/feedbacks/prioritized?limit=20`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Kanban API працює!</span><br>
+                        <strong>Знайдено відгуків:</strong> ${data.length}<br>
+                        <strong>Джерела:</strong> ${[...new Set(data.map(f => f.source))].join(', ')}
+                    `;
+                    displayResults(data);
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Kanban API помилка</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        async function testWithFilters() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<span class="loading">Тестуємо з фільтрами...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/feedbacks/prioritized?source=playstore&limit=10`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Фільтрація працює!</span><br>
+                        <strong>Знайдено відгуків:</strong> ${data.length}<br>
+                        <strong>Тільки Google Play:</strong> ${data.every(f => f.source === 'playstore') ? 'Так' : 'Ні'}
+                    `;
+                    displayResults(data);
+                } else {
+                    resultDiv.innerHTML = `
+                        <span class="error">❌ Помилка фільтрації</span><br>
+                        <strong>Помилка:</strong> ${data.message || 'Невідома помилка'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <span class="error">❌ Помилка з'єднання</span><br>
+                    <strong>Деталі:</strong> ${error.message}
+                `;
+            }
+        }
+
+        function displayResults(feedbacks) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (feedbacks.length === 0) {
+                resultsDiv.innerHTML = '<p>Немає даних для відображення</p>';
+                return;
+            }
+
+            const groupedByPriority = {
+                high: feedbacks.filter(f => f.priority === 'high'),
+                medium: feedbacks.filter(f => f.priority === 'medium'),
+                low: feedbacks.filter(f => f.priority === 'low')
+            };
+
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h3 style="color: #ef4444;">🔴 Високий пріоритет (${groupedByPriority.high.length})</h3>
+                        ${groupedByPriority.high.map(f => createFeedbackCard(f)).join('')}
+                    </div>
+                    <div>
+                        <h3 style="color: #f59e0b;">🟡 Середній пріоритет (${groupedByPriority.medium.length})</h3>
+                        ${groupedByPriority.medium.map(f => createFeedbackCard(f)).join('')}
+                    </div>
+                    <div>
+                        <h3 style="color: #10b981;">🟢 Низький пріоритет (${groupedByPriority.low.length})</h3>
+                        ${groupedByPriority.low.map(f => createFeedbackCard(f)).join('')}
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function createFeedbackCard(feedback) {
+            const priorityClass = `priority-${feedback.priority}`;
+            const sentimentClass = `sentiment-${feedback.sentiment}`;
+            
+            return `
+                <div class="feedback-card ${priorityClass}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span class="sentiment-${feedback.sentiment}" style="font-weight: bold; text-transform: uppercase;">
+                            ${feedback.sentiment}
+                        </span>
+                        <span style="background: #444; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                            ${feedback.priority}
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>${feedback.author}</strong> • ${feedback.source}
+                    </div>
+                    <div style="margin-bottom: 8px; font-size: 14px;">
+                        ${feedback.text.substring(0, 100)}${feedback.text.length > 100 ? '...' : ''}
+                    </div>
+                    <div style="font-size: 12px; color: #888;">
+                        Лайки: ${feedback.likes} • Оцінка: ${feedback.totalScore} • ${new Date(feedback.date).toLocaleDateString()}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearResults() {
+            document.getElementById('apiResult').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Автоматично тестуємо при завантаженні
+        window.onload = function() {
+            testKanbanAPI();
+        };
+    </script>
+</body>
+</html>

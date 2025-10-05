@@ -17,6 +17,21 @@ export class GoogleMapsService {
     try {
       this.logger.log(`🚀 Парсинг відгуків Google Maps через SerpAPI: ${url}`);
       
+      // Додаємо загальний таймаут для всього процесу (15 секунд)
+      const parsePromise = this.performParsing(url);
+      const timeoutPromise = new Promise<number>((_, reject) => 
+        setTimeout(() => reject(new Error('Таймаут парсингу Google Maps (15 секунд)')), 15000)
+      );
+      
+      return await Promise.race([parsePromise, timeoutPromise]);
+    } catch (error) {
+      this.logger.error(`Помилка парсингу Google Maps: ${error.message}`);
+      return 0;
+    }
+  }
+
+  private async performParsing(url: string): Promise<number> {
+    try {
       let placeId = await this.extractPlaceId(url);
       this.logger.log(`📍 Отримано Place ID: ${placeId}`);
       
@@ -29,6 +44,7 @@ export class GoogleMapsService {
           this.logger.log(`✅ Знайдено Place ID через пошук: ${placeId}`);
         } else {
           this.logger.warn('❌ Не вдалося знайти Place ID ні з URL, ні через пошук');
+          this.logger.warn('🚫 Пропускаємо парсинг для цього URL');
           return 0;
         }
       }
@@ -356,7 +372,7 @@ export class GoogleMapsService {
         return null;
       }
 
-      // Спробуємо різні варіанти пошуку з більш специфічними термінами
+      // Обмежуємо кількість спроб пошуку для уникнення безкінечного циклу
       const searchTerms = [
         placeName, // Спочатку спробуємо точну назву
         `${placeName} Київ Україна`,
@@ -364,37 +380,38 @@ export class GoogleMapsService {
         `${placeName} Київ`,
         `${placeName} Україна`,
         `${placeName} Kyiv`,
-        `${placeName} Ukraine`,
-        // Спробуємо скорочені варіанти
-        placeName.replace(/Свято-Троицкий/, 'Троицкий'),
-        placeName.replace(/Китаевский/, 'Китаевский'),
-        placeName.replace(/монастырь/, 'монастырь'),
-        placeName.replace(/УПЦ/, ''),
-        // Додаємо ключові слова
-        `${placeName} монастир Київ`,
-        `${placeName} monastery Kyiv`,
-        `${placeName} церква Київ`,
-        `${placeName} church Kyiv`,
-        `${placeName} храм Київ`,
-        `${placeName} temple Kyiv`,
-        `${placeName} магазин Київ`,
-        `${placeName} store Kyiv`,
-        `${placeName} restaurant Київ`,
-        `${placeName} кафе Київ`,
-        `${placeName} cafe Kyiv`
+        `${placeName} Ukraine`
       ];
 
-      for (const term of searchTerms) {
-        this.logger.log(`Спробуємо пошук: "${term}"`);
-        const response = await this.serpApiService.searchPlaceByName(term);
-        if (response) {
-          this.logger.log(`✅ Знайдено місце за терміном: "${term}", Place ID: ${response}`);
-          return response;
-        } else {
-          this.logger.log(`❌ Не знайдено місце за терміном: "${term}"`);
+      // Обмежуємо до 7 спроб (перші 7 термінів)
+      const limitedTerms = searchTerms.slice(0, 7);
+      
+      for (let i = 0; i < limitedTerms.length; i++) {
+        const term = limitedTerms[i];
+        this.logger.log(`Спробуємо пошук (${i + 1}/${limitedTerms.length}): "${term}"`);
+        
+        try {
+          // Додаємо таймаут для кожного пошуку (3 секунди)
+          const searchPromise = this.serpApiService.searchPlaceByName(term);
+          const timeoutPromise = new Promise<string | null>((_, reject) => 
+            setTimeout(() => reject(new Error('Таймаут пошуку')), 3000)
+          );
+          
+          const response = await Promise.race([searchPromise, timeoutPromise]) as string | null;
+          
+          if (response) {
+            this.logger.log(`✅ Знайдено місце за терміном: "${term}", Place ID: ${response}`);
+            return response;
+          } else {
+            this.logger.log(`❌ Не знайдено місце за терміном: "${term}"`);
+          }
+        } catch (error) {
+          this.logger.warn(`Помилка пошуку за терміном "${term}": ${error.message}`);
+          // Продовжуємо з наступним терміном
         }
       }
 
+      this.logger.warn('Не вдалося знайти місце через розширений пошук');
       return null;
     } catch (error) {
       this.logger.error(`Помилка розширеного пошуку: ${error.message}`);

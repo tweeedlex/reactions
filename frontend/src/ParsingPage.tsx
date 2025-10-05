@@ -180,19 +180,19 @@ const ParsingPage: React.FC = () => {
     return comments;
   };
 
-  const extractAppIdFromUrl = (url: string): string => {
-    if (url.includes('play.google.com')) {
-      const match = url.match(/id=([^&]+)/);
-      return match ? match[1] : '';
-    } else if (url.includes('apps.apple.com')) {
-      const match = url.match(/id(\d+)/);
-      return match ? match[1] : '';
-    } else if (url.includes('maps.app.goo.gl') || url.includes('google.com/maps')) {
-      // Для Google Maps повертаємо сам URL як ідентифікатор
-      return url;
-    }
-    return '';
-  };
+  // const extractAppIdFromUrl = (url: string): string => {
+  //   if (url.includes('play.google.com')) {
+  //     const match = url.match(/id=([^&]+)/);
+  //     return match ? match[1] : '';
+  //   } else if (url.includes('apps.apple.com')) {
+  //     const match = url.match(/id(\d+)/);
+  //     return match ? match[1] : '';
+  //   } else if (url.includes('maps.app.goo.gl') || url.includes('google.com/maps')) {
+  //     // Для Google Maps повертаємо сам URL як ідентифікатор
+  //     return url;
+  //   }
+  //   return '';
+  // };
 
   const handleShowAllComments = () => {
     setShowParsedComments(false);

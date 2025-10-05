@@ -126,8 +126,22 @@ function Dashboard() {
                 </select>
               </div>
               <Link 
-                to="/support"
+                to="/sources"
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Джерела
+              </Link>
+              <Link 
+                to="/kanban"
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Kanban
+              </Link>
+              <Link 
+                to="/support"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all transform hover:scale-105"
               >
                 <MessageSquare className="w-4 h-4" />
                 Сапорт
