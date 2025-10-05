@@ -185,6 +185,27 @@ export interface DataSourceWithLinks {
   }>;
 }
 
+// Support Ticket types from v_company_support_tickets view
+export interface SupportTicket {
+  id: number;
+  number: string;
+  status_title: string;
+  ticket_type_title: string;
+  ai_theme: string;
+  user_message: string;
+  ai_ton_of_voice_value: number;
+  ai_ton_of_voice_title: string;
+  tags_array: string[];
+  ai_suggested_answer_text: string;
+  ai_company_answer_data_source_title: string;
+  ai_company_answer_data_source_url: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+  updated_user_id: string;
+  company_id: number;
+}
+
 // Company state for Redux
 export interface CompanyState {
   companies: Company[];

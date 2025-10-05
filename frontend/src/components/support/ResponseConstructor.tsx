@@ -1,20 +1,45 @@
-import { useState } from 'react';
-import { Zap, Copy, Send, MessageSquare } from 'lucide-react';
-import type { Comment, ResponseStyle } from '@/types';
+import { useState, useEffect } from 'react';
+import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink } from 'lucide-react';
+import type { Comment, ResponseStyle, SupportTicket } from '@/types';
 import { generateResponse } from '@/utils/responseTemplates';
+import { supportService } from '@/utils/supportService';
 
 interface ResponseConstructorProps {
   selectedComment: Comment | null;
+  selectedTicket?: SupportTicket | null;
 }
 
-export function ResponseConstructor({ selectedComment }: ResponseConstructorProps) {
+export function ResponseConstructor({ selectedComment, selectedTicket }: ResponseConstructorProps) {
   const [responseText, setResponseText] = useState('');
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>('friendly');
+  const [aiResponse, setAiResponse] = useState<string>('');
+  const [useAiResponse, setUseAiResponse] = useState(false);
+
+  // Завантажуємо AI відповідь при виборі тікета
+  useEffect(() => {
+    if (selectedTicket?.ai_suggested_answer_text) {
+      setAiResponse(selectedTicket.ai_suggested_answer_text);
+      setUseAiResponse(true);
+      setResponseText(selectedTicket.ai_suggested_answer_text);
+    } else {
+      setAiResponse('');
+      setUseAiResponse(false);
+      setResponseText('');
+    }
+  }, [selectedTicket]);
 
   const handleGenerateResponse = () => {
     if (selectedComment) {
       const response = generateResponse(selectedComment, responseStyle);
       setResponseText(response);
+      setUseAiResponse(false);
+    }
+  };
+
+  const handleUseAiResponse = () => {
+    if (aiResponse) {
+      setResponseText(aiResponse);
+      setUseAiResponse(true);
     }
   };
 
@@ -41,27 +66,95 @@ export function ResponseConstructor({ selectedComment }: ResponseConstructorProp
             <span className="text-lg">{selectedComment.avatar}</span>
             <span className="font-semibold text-white">{selectedComment.username}</span>
             <span className="text-sm text-gray-400">({selectedComment.platform})</span>
+            {selectedTicket && (
+              <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                #{selectedTicket.number}
+              </span>
+            )}
           </div>
-          <p className="text-gray-300">{selectedComment.text}</p>
+          <p className="text-gray-300 mb-3">{selectedComment.text}</p>
+          
+          {/* Додаткова інформація з тікета */}
+          {selectedTicket && (
+            <div className="border-t border-gray-600 pt-3 mt-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Статус:</span>
+                  <span className="ml-2 text-white">{selectedTicket.status_title}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тип:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ticket_type_title}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тема:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ai_theme}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тональність:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ai_ton_of_voice_title}</span>
+                </div>
+              </div>
+              
+              {/* Теги */}
+              {selectedTicket.tags_array && selectedTicket.tags_array.length > 0 && (
+                <div className="mt-3">
+                  <span className="text-gray-400 text-sm">Теги:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedTicket.tags_array.map((tag, index) => (
+                      <span key={index} className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Джерело даних */}
+              {selectedTicket.ai_company_answer_data_source_title && (
+                <div className="mt-3">
+                  <span className="text-gray-400 text-sm">Джерело:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white text-sm">{selectedTicket.ai_company_answer_data_source_title}</span>
+                    {selectedTicket.ai_company_answer_data_source_url && (
+                      <a 
+                        href={selectedTicket.ai_company_answer_data_source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-purple-400 hover:text-purple-300"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-2">Стиль відповіді:</label>
-        <div className="grid grid-cols-3 gap-2">
-          {(['official', 'friendly', 'support'] as ResponseStyle[]).map((style) => (
-            <button
-              key={style}
-              onClick={() => setResponseStyle(style)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                responseStyle === style ? 'bg-purple-600 text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              {style === 'official' ? 'Офіційний' : style === 'friendly' ? 'Дружній' : 'Техпідтримка'}
-            </button>
-          ))}
+      
+
+      {/* AI відповідь */}
+      {aiResponse && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-yellow-400" />
+            <label className="text-sm font-medium text-gray-300">AI запропонована відповідь:</label>
+          </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-3">
+            <p className="text-gray-300 text-sm">{aiResponse}</p>
+          </div>
+          <button
+            onClick={handleUseAiResponse}
+            className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-yellow-700 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Використати AI відповідь
+          </button>
         </div>
-      </div>
+      )}
 
       <div className="mb-6">
         <button
@@ -69,7 +162,7 @@ export function ResponseConstructor({ selectedComment }: ResponseConstructorProp
           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
         >
           <Zap className="w-4 h-4" />
-          Згенерувати відповідь
+          Згенерувати власну відповідь
         </button>
       </div>
 

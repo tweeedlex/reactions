@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Clock } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import type { Comment } from '@/types';
-import { mockComments } from '@/utils/mockData';
 import { CommentCard, ResponseConstructor } from '@/components/support';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupportTickets } from '@/hooks/useSupportTickets';
 
 function SupportPage() {
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<import('@/types').SupportTicket | null>(null);
   const { userRole } = useAuth();
+  const { tickets, comments, loading, error, refetch } = useSupportTickets();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -30,9 +32,17 @@ function SupportPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={refetch}
+                disabled={loading}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Оновити
+              </button>
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <Clock className="w-4 h-4" />
-                Останнє оновлення: 2 хв тому
+                Останнє оновлення: щойно
               </div>
             </div>
           </div>
@@ -42,26 +52,64 @@ function SupportPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
 
+        {/* Error State */}
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <div>
+                <h3 className="text-red-400 font-semibold">Помилка завантаження</h3>
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Comments Feed */}
           <div>
             <h2 className="text-2xl font-bold text-white mb-6">Коментарі з соціальних мереж</h2>
-            <div className="space-y-4">
-              {mockComments.map((comment) => (
-                <CommentCard
-                  key={comment.id}
-                  comment={comment}
-                  isSelected={selectedComment?.id === comment.id}
-                  onClick={() => setSelectedComment(comment)}
-                />
-              ))}
-            </div>
+            
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center gap-3 text-gray-400">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                  <span>Завантаження коментарів...</span>
+                </div>
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageSquare className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-400 mb-2">Немає коментарів</h3>
+                <p className="text-gray-500">Поки що немає коментарів для відображення</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {comments.map((comment, index) => {
+                  const ticket = tickets[index]; // Відповідний тікет за індексом
+                  return (
+                    <CommentCard
+                      key={comment.id}
+                      comment={comment}
+                      isSelected={selectedComment?.id === comment.id}
+                      onClick={() => {
+                        setSelectedComment(comment);
+                        setSelectedTicket(ticket);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Response Constructor */}
           <div>
             <h2 className="text-2xl font-bold text-white mb-6">Конструктор відповідей</h2>
-            <ResponseConstructor selectedComment={selectedComment} />
+            <ResponseConstructor 
+              selectedComment={selectedComment} 
+              selectedTicket={selectedTicket}
+            />
           </div>
         </div>
       </div>
