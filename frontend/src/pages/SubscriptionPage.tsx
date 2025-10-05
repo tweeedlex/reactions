@@ -74,6 +74,17 @@ function SubscriptionPage() {
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
   const [isIntervalModalOpen, setIsIntervalModalOpen] = useState(false);
 
+  // Функція для форматування інтервалу
+  const formatInterval = (interval: { days: number; hours: number; minutes: number }) => {
+    if (interval.days > 0) {
+      return `${interval.days}д ${interval.hours}г ${interval.minutes}хв`;
+    } else if (interval.hours > 0) {
+      return `${interval.hours}г ${interval.minutes}хв`;
+    } else {
+      return `${interval.minutes}хв`;
+    }
+  };
+
   useEffect(() => {
     const subData = getSubscriptionStatus();
     if (subData) {
@@ -223,7 +234,7 @@ function SubscriptionPage() {
                   </p>
                   <button onClick={() => setIsIntervalModalOpen(true)} className="text-sm text-gray-400 hover:text-white flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>{`${subscription.parsingInterval.days}д ${subscription.parsingInterval.hours}г ${subscription.parsingInterval.minutes}хв`}</span>
+                    <span>{formatInterval(subscription.parsingInterval)}</span>
                   </button>
                 </div>
                 <button

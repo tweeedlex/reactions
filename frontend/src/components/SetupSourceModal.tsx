@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Link, Globe, Check, AlertCircle } from 'lucide-react';
+import { X, Link, Globe, AlertCircle, Plus, Edit3, Trash2 } from 'lucide-react';
 import type { SourceLink } from '@/types';
 
 interface SetupSourceModalProps {
@@ -7,7 +7,7 @@ interface SetupSourceModalProps {
   onClose: () => void;
   onSave: (sourceLink: SourceLink) => void;
   sourceName: string;
-  existingUrl?: string;
+  existingLinks?: Array<{ id: number | string; url: string; title?: string }>;
 }
 
 const SOCIAL_NETWORKS = [
@@ -26,13 +26,20 @@ const OTHER_SOURCES = [
   { name: 'Форуми', placeholder: 'https://forum.example.com/your-thread', icon: '💬' },
 ];
 
-function SetupSourceModal({ isOpen, onClose, onSave, sourceName, existingUrl }: SetupSourceModalProps) {
-  const [url, setUrl] = useState(existingUrl || '');
+function SetupSourceModal({ isOpen, onClose, onSave, sourceName, existingLinks = [] }: SetupSourceModalProps) {
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [editingLink, setEditingLink] = useState<number | null>(null);
 
   const handleSave = () => {
     if (!url.trim()) {
       setError('Будь ласка, введіть посилання');
+      return;
+    }
+
+    if (!title.trim()) {
+      setError('Будь ласка, введіть назву посилання');
       return;
     }
 
@@ -44,14 +51,29 @@ function SetupSourceModal({ isOpen, onClose, onSave, sourceName, existingUrl }: 
       return;
     }
 
-    onSave({ name: sourceName, url: url.trim() });
-    onClose();
+    onSave({ source: sourceName, url: url.trim(), title: title.trim() });
+    setUrl('');
+    setTitle('');
+    setError(null);
   };
 
   const handleClose = () => {
     setUrl('');
+    setTitle('');
     setError(null);
+    setEditingLink(null);
     onClose();
+  };
+
+  const handleEditLink = (link: { id: number | string; url: string; title?: string }) => {
+    setEditingLink(typeof link.id === 'string' ? 0 : link.id);
+    setUrl(link.url);
+    setTitle(link.title || '');
+  };
+
+  const handleDeleteLink = (linkId: number | string) => {
+    // Тут можна додати логіку видалення посилання
+    console.log('Delete link:', linkId);
   };
 
   const getPlaceholder = () => {
@@ -109,23 +131,71 @@ function SetupSourceModal({ isOpen, onClose, onSave, sourceName, existingUrl }: 
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Посилання на сторінку {sourceName}
-            </label>
-            <div className="relative">
-              <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          {/* Існуючі посилання */}
+          {existingLinks.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-white">Існуючі посилання:</h4>
+              {existingLinks.map((link) => (
+                <div key={link.id} className="bg-slate-700/50 rounded-lg p-3 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm text-white font-medium">{link.title || 'Без назви'}</div>
+                    <div className="text-xs text-gray-400 truncate">{link.url}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditLink(link)}
+                      className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLink(link.id)}
+                      className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Форма додавання/редагування */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Назва посилання
+              </label>
               <input
-                type="url"
-                value={url}
+                type="text"
+                value={title}
                 onChange={(e) => {
-                  setUrl(e.target.value);
+                  setTitle(e.target.value);
                   setError(null);
                 }}
-                className="w-full bg-slate-700 text-white pl-12 pr-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
-                placeholder={getPlaceholder()}
+                className="w-full bg-slate-700 text-white px-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
+                placeholder="Наприклад: Головна сторінка, Профіль, Група"
                 autoFocus
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Посилання
+              </label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    setError(null);
+                  }}
+                  className="w-full bg-slate-700 text-white pl-12 pr-4 py-3 rounded-lg border border-purple-500/30 focus:border-purple-500 focus:outline-none transition-colors"
+                  placeholder={getPlaceholder()}
+                />
+              </div>
             </div>
           </div>
 
@@ -148,14 +218,14 @@ function SetupSourceModal({ isOpen, onClose, onSave, sourceName, existingUrl }: 
             onClick={handleClose}
             className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-semibold transition-colors"
           >
-            Скасувати
+            {editingLink ? 'Скасувати редагування' : 'Закрити'}
           </button>
           <button
             onClick={handleSave}
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
           >
-            <Check className="w-5 h-5" />
-            Зберегти
+            {editingLink ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            {editingLink ? 'Оновити' : 'Додати'}
           </button>
         </div>
       </div>

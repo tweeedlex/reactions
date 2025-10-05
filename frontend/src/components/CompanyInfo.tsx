@@ -23,11 +23,11 @@ export function CompanyInfo() {
       <div className="space-y-4">
         <div>
           <h4 className="text-xl font-bold text-white mb-1">{currentCompany.title}</h4>
-          {currentCompany.site_url && (
+          {currentCompany.site_url && currentCompany.site_url.trim() && (
             <div className="flex items-center gap-2 text-gray-400">
               <Globe className="w-4 h-4" />
               <a 
-                href={currentCompany.site_url} 
+                href={currentCompany.site_url.startsWith('http') ? currentCompany.site_url : `https://${currentCompany.site_url}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="hover:text-purple-400 transition-colors"

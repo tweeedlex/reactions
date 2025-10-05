@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
@@ -8,7 +8,6 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Users,
   Calendar,
   ArrowLeft,
   TrendingUp,
@@ -16,19 +15,39 @@ import {
   Settings,
   Crown,
   Coins,
+  Link as LinkIcon,
+  Database,
+  Target,
+  FileText,
 } from 'lucide-react';
-import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
-import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
+import { mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
+import { MetricCard, FilterEditModal } from '@/components/dashboard';
 import { AlertCard, KeywordAlerts } from '@/components/support';
 import { CompanyInfo } from '@/components/CompanyInfo';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchCompanyDataSources } from '@/store/slices/companySlice';
+import { useSupportTickets } from '@/hooks/useSupportTickets';
 
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const data = mockDashboardData;
   
   // Хардкоджений баланс токенів
   const tokenBalance = 1000;
+
+  // Redux state
+  const dispatch = useAppDispatch();
+  const { currentCompany, dataSources } = useAppSelector(state => state.company);
+
+  // Хук для аналізу тікетів підтримки
+  const { analysis: supportAnalysis, loading: supportLoading } = useSupportTickets();
+
+  // Завантажуємо джерела даних при завантаженні компонента
+  useEffect(() => {
+    if (currentCompany) {
+      dispatch(fetchCompanyDataSources(currentCompany.id));
+    }
+  }, [currentCompany, dispatch]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -110,45 +129,72 @@ function Dashboard() {
           <CompanyInfo />
         </div>
 
+        {/* Data Sources */}
+        {dataSources.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-purple-400" />
+                Джерела даних
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dataSources.map((source) => (
+                  <div key={`${source.title}-${source.type_id}`} className="bg-slate-700/50 rounded-lg p-4">
+                    <h4 className="font-medium text-white mb-2">{source.title}</h4>
+                    <div className="space-y-1">
+                      {source.links.map((link) => (
+                        <div key={link.id} className="flex items-center gap-2 text-sm text-gray-300">
+                          <LinkIcon className="w-3 h-3 text-purple-400" />
+                          <a 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-purple-400 transition-colors truncate"
+                          >
+                            {link.url}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard
-            title="Репутаційна оцінка"
-            value={data.reputationScore}
+            title="Всього тікетів"
+            value={supportAnalysis ? supportAnalysis.totalTickets.toLocaleString() : '0'}
             trend={{ direction: 'up', value: '+5.2%' }}
-            icon={Shield}
+            icon={MessageSquare}
             gradientFrom="purple-500"
             gradientTo="pink-500"
-            tooltipContent={
-              <div className="space-y-2">
-                <p className="font-bold">Формула розрахунку:</p>
-                <p>(Позитивні * 1) + (Нейтральні * 0.5) - (Негативні * 2)</p>
-                <p className="text-xs text-gray-400 pt-2 border-t border-slate-600">Це мокова формула для демонстрації. Реальний розрахунок може бути складнішим.</p>
-              </div>
-            }
           />
           <MetricCard
-            title="Всього згадок"
-            value={data.totalMentions.toLocaleString()}
-            trend={{ direction: 'up', value: '+12.3%' }}
-            icon={MessageSquare}
-            gradientFrom="blue-500"
-            gradientTo="cyan-500"
-          />
-          <MetricCard
-            title="Позитивні відгуки"
-            value={`${data.sentiment.positive}%`}
-            trend={{ direction: 'up', value: '+2.1%' }}
+            title="Позитивні тікети"
+            value={supportAnalysis ? `${supportAnalysis.sentimentStats.positive.percentage}%` : '0%'}
+            trend={{ direction: 'up', value: `+${supportAnalysis?.sentimentStats.positive.count || 0}` }}
             icon={CheckCircle}
             gradientFrom="green-500"
             gradientTo="emerald-500"
           />
           <MetricCard
-            title="Критичні проблеми"
-            value={data.priorityIssues.filter((issue) => issue.severity === 'high').length}
-            trend={{ direction: 'down', value: '-1' }}
+            title="Негативні тікети"
+            value={supportAnalysis ? `${supportAnalysis.sentimentStats.negative.percentage}%` : '0%'}
+            trend={{ direction: 'down', value: `${supportAnalysis?.sentimentStats.negative.count || 0}` }}
             icon={AlertTriangle}
             gradientFrom="red-500"
+            gradientTo="orange-500"
+          />
+          <MetricCard
+            title="Нейтральні тікети"
+            value={supportAnalysis ? `${supportAnalysis.sentimentStats.neutral.percentage}%` : '0%'}
+            trend={{ direction: 'up', value: `${supportAnalysis?.sentimentStats.neutral.count || 0}` }}
+            icon={Activity}
+            gradientFrom="yellow-500"
             gradientTo="orange-500"
           />
         </div>
@@ -176,71 +222,106 @@ function Dashboard() {
           {/* Sentiment Distribution */}
           <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Розподіл тональності</h3>
+              <h3 className="text-xl font-semibold text-white">Розподіл тональності тікетів</h3>
               <PieChart className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-300">Позитивні</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-slate-700 rounded-full">
-                    <div className="w-3/4 h-2 bg-green-500 rounded-full"></div>
+            {supportLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Завантаження...</div>
+              </div>
+            ) : supportAnalysis ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-300">Позитивні</span>
                   </div>
-                  <span className="text-white font-semibold">{data.sentiment.positive}%</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-slate-700 rounded-full">
+                      <div 
+                        className="h-2 bg-green-500 rounded-full"
+                        style={{ width: `${supportAnalysis.sentimentStats.positive.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white font-semibold">{supportAnalysis.sentimentStats.positive.percentage}%</span>
+                    <span className="text-xs text-gray-400">({supportAnalysis.sentimentStats.positive.count})</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                    <span className="text-gray-300">Нейтральні</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-slate-700 rounded-full">
+                      <div 
+                        className="h-2 bg-yellow-500 rounded-full"
+                        style={{ width: `${supportAnalysis.sentimentStats.neutral.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white font-semibold">{supportAnalysis.sentimentStats.neutral.percentage}%</span>
+                    <span className="text-xs text-gray-400">({supportAnalysis.sentimentStats.neutral.count})</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                    <span className="text-gray-300">Негативні</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-slate-700 rounded-full">
+                      <div 
+                        className="h-2 bg-red-500 rounded-full"
+                        style={{ width: `${supportAnalysis.sentimentStats.negative.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white font-semibold">{supportAnalysis.sentimentStats.negative.percentage}%</span>
+                    <span className="text-xs text-gray-400">({supportAnalysis.sentimentStats.negative.count})</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                  <span className="text-gray-300">Нейтральні</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-slate-700 rounded-full">
-                    <div className="w-1/3 h-2 bg-yellow-500 rounded-full"></div>
-                  </div>
-                  <span className="text-white font-semibold">{data.sentiment.neutral}%</span>
-                </div>
+            ) : (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Немає даних про тікети</div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-300">Негативні</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-slate-700 rounded-full">
-                    <div className="w-1/4 h-2 bg-red-500 rounded-full"></div>
-                  </div>
-                  <span className="text-white font-semibold">{data.sentiment.negative}%</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Intent Classification */}
           <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Класифікація намірів</h3>
-              <BarChart3 className="w-5 h-5 text-purple-400" />
+              <h3 className="text-xl font-semibold text-white">Класифікація намірів тікетів</h3>
+              <Target className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="space-y-4">
-              {Object.entries(data.intentClassification).map(([intent, percentage]) => (
-                <div key={intent} className="flex items-center justify-between">
-                  <span className="text-gray-300">{intent}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-slate-700 rounded-full">
-                      <div
-                        className="h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+            {supportLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Завантаження...</div>
+              </div>
+            ) : supportAnalysis ? (
+              <div className="space-y-4">
+                {Object.entries(supportAnalysis.ticketTypeStats)
+                  .sort(([,a], [,b]) => b.count - a.count)
+                  .map(([type, stats]) => (
+                    <div key={type} className="flex items-center justify-between">
+                      <span className="text-gray-300">{type}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 h-2 bg-slate-700 rounded-full">
+                          <div
+                            className="h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                            style={{ width: `${stats.percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-white font-semibold">{stats.percentage}%</span>
+                        <span className="text-xs text-gray-400">({stats.count})</span>
+                      </div>
                     </div>
-                    <span className="text-white font-semibold">{percentage}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Немає даних про тікети</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -249,51 +330,79 @@ function Dashboard() {
           {/* Sources Distribution */}
           <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Джерела згадок</h3>
-              <Users className="w-5 h-5 text-purple-400" />
+              <h3 className="text-xl font-semibold text-white">Джерела згадок тікетів</h3>
+              <Database className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="space-y-3">
-              {Object.entries(data.sources).map(([source, count]) => (
-                <div key={source} className="flex items-center justify-between">
-                  <span className="text-gray-300">{source}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-slate-700 rounded-full">
-                      <div
-                        className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                        style={{ width: `${(count / Math.max(...Object.values(data.sources))) * 100}%` }}
-                      ></div>
+            {supportLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Завантаження...</div>
+              </div>
+            ) : supportAnalysis ? (
+              <div className="space-y-3">
+                {Object.entries(supportAnalysis.dataSourceStats)
+                  .sort(([,a], [,b]) => b.count - a.count)
+                  .map(([source, stats]) => (
+                    <div key={source} className="flex items-center justify-between">
+                      <span className="text-gray-300">{source}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 bg-slate-700 rounded-full">
+                          <div
+                            className="h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                            style={{ width: `${stats.percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-white font-semibold">{stats.count}</span>
+                        <span className="text-xs text-gray-400">({stats.percentage}%)</span>
+                      </div>
                     </div>
-                    <span className="text-white font-semibold">{count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Немає даних про тікети</div>
+              </div>
+            )}
           </div>
 
           {/* Trending Topics */}
           <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Трендові теми</h3>
-              <Activity className="w-5 h-5 text-purple-400" />
+              <h3 className="text-xl font-semibold text-white">Теми тікетів</h3>
+              <FileText className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="space-y-4">
-              {data.trendingTopics.map((topic, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-300">{topic.topic}</span>
-                    {topic.trend === 'up' && <TrendingUp className="w-4 h-4 text-green-400" />}
-                    {topic.trend === 'down' && <TrendingDown className="w-4 h-4 text-red-400" />}
-                    {topic.trend === 'stable' && <div className="w-4 h-4 bg-gray-400 rounded-full"></div>}
-                  </div>
-                  <span className="text-white font-semibold">{topic.mentions}</span>
-                </div>
-              ))}
-            </div>
+            {supportLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Завантаження...</div>
+              </div>
+            ) : supportAnalysis ? (
+              <div className="space-y-4">
+                {Object.entries(supportAnalysis.themeStats)
+                  .sort(([,a], [,b]) => b.count - a.count)
+                  .map(([theme, stats]) => (
+                    <div key={theme} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-300">{theme}</span>
+                        {stats.count > 5 && <TrendingUp className="w-4 h-4 text-green-400" />}
+                        {stats.count <= 5 && stats.count > 2 && <div className="w-4 h-4 bg-yellow-400 rounded-full"></div>}
+                        {stats.count <= 2 && <TrendingDown className="w-4 h-4 text-red-400" />}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-semibold">{stats.count}</span>
+                        <span className="text-xs text-gray-400">({stats.percentage}%)</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-gray-400">Немає даних про тікети</div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Priority Issues */}
-        <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20 mb-8">
+        {/* <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20 mb-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold text-white">Пріоритетні проблеми</h3>
             <AlertTriangle className="w-5 h-5 text-purple-400" />
@@ -303,28 +412,118 @@ function Dashboard() {
               <PriorityIssueCard key={issue.id} issue={issue} />
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Daily Trends Chart */}
         <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-white">Динаміка згадок за останні 7 днів</h3>
+            <h3 className="text-xl font-semibold text-white">Динаміка тікетів за останні 7 днів</h3>
             <BarChart3 className="w-5 h-5 text-purple-400" />
           </div>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {data.dailyStats.map((day, index) => (
-              <div key={index} className="flex flex-col items-center gap-2">
-                <div
-                  className="bg-gradient-to-t from-purple-500 to-pink-500 rounded-t w-8 transition-all hover:opacity-80"
-                  style={{
-                    height: `${(day.mentions / Math.max(...data.dailyStats.map((d) => d.mentions))) * 200}px`,
-                  }}
-                ></div>
-                <span className="text-xs text-gray-400">{new Date(day.date).getDate()}</span>
-                <span className="text-xs text-white">{day.mentions}</span>
+          {supportLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-gray-400">Завантаження...</div>
+            </div>
+          ) : supportAnalysis && supportAnalysis.dailyStats.length > 0 ? (
+            <div>
+              {/* Легенда */}
+              <div className="flex items-center justify-center gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Позитивні</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Нейтральні</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Негативні</span>
+                </div>
               </div>
-            ))}
-          </div>
+              
+              {/* Графік */}
+              <div className="h-64 flex items-end justify-between gap-2">
+                {supportAnalysis.dailyStats.map((day, index) => {
+                  const maxCount = Math.max(...supportAnalysis.dailyStats.map(d => d.count));
+                  const totalHeight = maxCount > 0 ? (day.count / maxCount) * 180 : 0;
+                  
+                  return (
+                    <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                      {/* Стеки стовпців */}
+                      <div className="relative w-8" style={{ height: `${totalHeight}px` }}>
+                        {day.sentiment.positive > 0 && (
+                          <div
+                            className="absolute bottom-0 w-full bg-green-500 rounded-t transition-all hover:opacity-80"
+                            style={{
+                              height: `${(day.sentiment.positive / day.count) * totalHeight}px`,
+                            }}
+                            title={`Позитивні: ${day.sentiment.positive}`}
+                          ></div>
+                        )}
+                        {day.sentiment.neutral > 0 && (
+                          <div
+                            className="absolute w-full bg-yellow-500 transition-all hover:opacity-80"
+                            style={{
+                              bottom: `${(day.sentiment.positive / day.count) * totalHeight}px`,
+                              height: `${(day.sentiment.neutral / day.count) * totalHeight}px`,
+                            }}
+                            title={`Нейтральні: ${day.sentiment.neutral}`}
+                          ></div>
+                        )}
+                        {day.sentiment.negative > 0 && (
+                          <div
+                            className="absolute w-full bg-red-500 rounded-b transition-all hover:opacity-80"
+                            style={{
+                              bottom: `${((day.sentiment.positive + day.sentiment.neutral) / day.count) * totalHeight}px`,
+                              height: `${(day.sentiment.negative / day.count) * totalHeight}px`,
+                            }}
+                            title={`Негативні: ${day.sentiment.negative}`}
+                          ></div>
+                        )}
+                      </div>
+                      
+                      {/* Підпис дати */}
+                      <span className="text-xs text-gray-400">
+                        {new Date(day.date).toLocaleDateString('uk-UA', { month: 'short', day: 'numeric' })}
+                      </span>
+                      
+                      {/* Підпис кількості */}
+                      <span className="text-xs text-white font-semibold">{day.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Підсумкова статистика */}
+              <div className="mt-4 pt-4 border-t border-slate-600">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold text-green-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.positive, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Позитивних</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-yellow-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.neutral, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Нейтральних</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-red-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.negative, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Негативних</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-gray-400">Немає даних за останні 7 днів</div>
+            </div>
+          )}
         </div>
       </div>
 

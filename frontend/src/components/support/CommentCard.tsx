@@ -1,4 +1,4 @@
-import { Calendar, ThumbsUp, ThumbsDown, MessageSquare, ExternalLink } from 'lucide-react';
+import { Calendar, ThumbsUp, ThumbsDown, MessageSquare, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import type { Comment } from '@/types';
 
 interface CommentCardProps {
@@ -32,6 +32,28 @@ export function CommentCard({ comment, isSelected, onClick }: CommentCardProps) 
             >
               {comment.priority === 'high' ? 'Високий' : comment.priority === 'medium' ? 'Середній' : 'Низький'}
             </span>
+            {/* Статус тікета */}
+            {comment.localStatus && (
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+                  comment.localStatus === 'closed'
+                    ? 'bg-gray-500/20 text-gray-400'
+                    : 'bg-blue-500/20 text-blue-400'
+                }`}
+              >
+                {comment.localStatus === 'closed' ? (
+                  <>
+                    <XCircle className="w-3 h-3" />
+                    Закрито
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-3 h-3" />
+                    Відкрито
+                  </>
+                )}
+              </span>
+            )}
           </div>
           <p className="text-gray-300 mb-3">{comment.text}</p>
           <div className="flex items-center justify-between text-sm text-gray-400">

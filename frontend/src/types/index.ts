@@ -12,6 +12,7 @@ export interface Comment {
   replies: number;
   url: string;
   highlightedKeywords?: string[];
+  localStatus?: 'open' | 'closed';
 }
 
 export interface KeywordAlert {
@@ -85,8 +86,9 @@ export interface User {
 }
 
 export interface SourceLink {
-  name: string;
+  source: string;
   url: string;
+  title?: string;
 }
 
 export interface BrandSetup {
@@ -145,8 +147,83 @@ export interface UserCompany {
   role_id: number;
 }
 
+// Ролі користувачів
+export type UserRole = 'admin' | 'support';
+
+export const USER_ROLES = {
+  ADMIN: 1,
+  SUPPORT: 2,
+} as const;
+
 export interface UserCompanyWithCompany extends UserCompany {
   company: Company;
+}
+
+// Додаємо роль до інтерфейсу
+export interface UserCompanyWithRole extends UserCompanyWithCompany {
+  role: UserRole;
+}
+
+// Data Source Types
+export interface DataSource {
+  id: number;
+  company_id: number;
+  type_id: number;
+  url: string;
+  interval_type_id: number;
+  title: string;
+}
+
+export interface DataSourceWithLinks {
+  id: number;
+  company_id: number;
+  type_id: number;
+  title: string;
+  links: Array<{
+    id: number;
+    url: string;
+    interval_type_id: number;
+  }>;
+}
+
+// Support Ticket types from v_company_support_tickets view
+export interface SupportTicket {
+  id: number;
+  number: string;
+  status_title: string;
+  ticket_type_title: string;
+  ai_theme: string;
+  user_message: string;
+  ai_ton_of_voice_value: number;
+  ai_ton_of_voice_title: string;
+  tags_array: string[];
+  ai_suggested_answer_text: string;
+  ai_company_answer_data_source_title: string;
+  ai_company_answer_data_source_url: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+  updated_user_id: string;
+  company_id: number;
+}
+
+// Company Tag types
+export interface CompanyTag {
+  id: number;
+  company_id: number;
+  title: string;
+  attention_rank: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Company Keyword types
+export interface CompanyKeyword {
+  id: number;
+  company_id: number;
+  keyword: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Company state for Redux
@@ -154,6 +231,10 @@ export interface CompanyState {
   companies: Company[];
   userCompanies: UserCompanyWithCompany[];
   currentCompany: Company | null;
+  currentUserRole: UserRole | null;
+  dataSources: DataSourceWithLinks[];
+  companyTags: CompanyTag[];
+  companyKeywords: CompanyKeyword[];
   loading: boolean;
   error: string | null;
 }

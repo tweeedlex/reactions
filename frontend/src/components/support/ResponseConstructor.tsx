@@ -1,25 +1,106 @@
-import { useState } from 'react';
-import { Zap, Copy, Send, MessageSquare } from 'lucide-react';
-import type { Comment, ResponseStyle } from '@/types';
+import { useState, useEffect } from 'react';
+import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink, X, RotateCcw, Plus, Tag } from 'lucide-react';
+import type { Comment, SupportTicket } from '@/types';
 import { generateResponse } from '@/utils/responseTemplates';
+import { supportService } from '@/utils/supportService';
+import { useCompanyTags } from '@/hooks/useCompanyTags';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 
 interface ResponseConstructorProps {
   selectedComment: Comment | null;
+  selectedTicket?: SupportTicket | null;
+  onCloseTicket?: (ticketId: number) => Promise<void>;
+  onReopenTicket?: (ticketId: number) => Promise<void>;
 }
 
-export function ResponseConstructor({ selectedComment }: ResponseConstructorProps) {
+export function ResponseConstructor({ 
+  selectedComment, 
+  selectedTicket, 
+  onCloseTicket, 
+  onReopenTicket 
+}: ResponseConstructorProps) {
   const [responseText, setResponseText] = useState('');
-  const [responseStyle, setResponseStyle] = useState<ResponseStyle>('friendly');
+  const [aiResponse, setAiResponse] = useState<string>('');
+  const [newTagTitle, setNewTagTitle] = useState('');
+  const [showAddTag, setShowAddTag] = useState(false);
+
+  // Отримуємо поточну компанію з Redux
+  const currentCompany = useSelector((state: RootState) => state.company.currentCompany);
+  
+  // Використовуємо хук для роботи з тегами
+  const { 
+    loading: tagsLoading, 
+    createTag, 
+    getTagsAsStrings 
+  } = useCompanyTags(currentCompany?.id);
+
+  // Завантажуємо AI відповідь при виборі тікета
+  useEffect(() => {
+    if (selectedTicket?.ai_suggested_answer_text) {
+      setAiResponse(selectedTicket.ai_suggested_answer_text);
+      setResponseText(selectedTicket.ai_suggested_answer_text);
+    } else {
+      setAiResponse('');
+      setResponseText('');
+    }
+  }, [selectedTicket]);
 
   const handleGenerateResponse = () => {
     if (selectedComment) {
-      const response = generateResponse(selectedComment, responseStyle);
+      const response = generateResponse(selectedComment, 'friendly');
       setResponseText(response);
+    }
+  };
+
+  const handleUseAiResponse = () => {
+    if (aiResponse) {
+      setResponseText(aiResponse);
     }
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(responseText);
+  };
+
+  // Перевіряємо чи тікет закритий (використовуємо локальний статус)
+  const localStatus = selectedTicket ? supportService.getLocalTicketStatus(selectedTicket.id) : null;
+  const isTicketClosed = localStatus === 'closed';
+
+  // Обробники для закриття/відкриття тікета
+  const handleCloseTicket = async () => {
+    if (selectedTicket && onCloseTicket) {
+      await onCloseTicket(selectedTicket.id);
+    }
+  };
+
+  const handleReopenTicket = async () => {
+    if (selectedTicket && onReopenTicket) {
+      await onReopenTicket(selectedTicket.id);
+    }
+  };
+
+  // Обробник для створення нового тегу
+  const handleCreateTag = async () => {
+    if (newTagTitle.trim() && currentCompany) {
+      try {
+        await createTag(newTagTitle.trim());
+        setNewTagTitle('');
+        setShowAddTag(false);
+      } catch (error) {
+        console.error('Error creating tag:', error);
+      }
+    }
+  };
+
+  // Отримуємо всі теги (з тікета + з БД)
+  const getAllTags = (): string[] => {
+    const ticketTags = selectedTicket?.tags_array || [];
+    const dbTags = getTagsAsStrings();
+    
+    // Об'єднуємо та видаляємо дублікати
+    const allTags = [...new Set([...ticketTags, ...dbTags])];
+    return allTags;
   };
 
   if (!selectedComment) {
@@ -41,27 +122,165 @@ export function ResponseConstructor({ selectedComment }: ResponseConstructorProp
             <span className="text-lg">{selectedComment.avatar}</span>
             <span className="font-semibold text-white">{selectedComment.username}</span>
             <span className="text-sm text-gray-400">({selectedComment.platform})</span>
+            {selectedTicket && (
+              <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                #{selectedTicket.number}
+              </span>
+            )}
           </div>
-          <p className="text-gray-300">{selectedComment.text}</p>
+          <p className="text-gray-300 mb-3">{selectedComment.text}</p>
+          
+          {/* Додаткова інформація з тікета */}
+          {selectedTicket && (
+            <div className="border-t border-gray-600 pt-3 mt-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Статус:</span>
+                  <span className="ml-2 text-white">
+                    {localStatus ? (localStatus === 'open' ? 'Відкрито' : 'Закрито') : selectedTicket.status_title}
+                    {/* {localStatus && (
+                      <span className="ml-1 text-xs text-yellow-400">(локально)</span>
+                    )} */}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тип:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ticket_type_title}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тема:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ai_theme}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Тональність:</span>
+                  <span className="ml-2 text-white">{selectedTicket.ai_ton_of_voice_title}</span>
+                </div>
+              </div>
+              
+              {/* Теги */}
+              {getAllTags().length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-400 text-sm">Теги:</span>
+                    <button
+                      onClick={() => setShowAddTag(!showAddTag)}
+                      className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Додати тег
+                    </button>
+                  </div>
+                  
+                  {/* Форма додавання тегу */}
+                  {showAddTag && (
+                    <div className="mb-2 p-2 bg-slate-600/50 rounded-lg">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newTagTitle}
+                          onChange={(e) => setNewTagTitle(e.target.value)}
+                          placeholder="Назва тегу"
+                          className="flex-1 bg-slate-700 text-white text-xs px-2 py-1 rounded border border-gray-600 focus:border-purple-500 focus:outline-none"
+                          onKeyPress={(e) => e.key === 'Enter' && handleCreateTag()}
+                        />
+                        <button
+                          onClick={handleCreateTag}
+                          disabled={!newTagTitle.trim() || tagsLoading}
+                          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                        >
+                          <Tag className="w-3 h-3" />
+                          {tagsLoading ? '...' : 'Додати'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAddTag(false);
+                            setNewTagTitle('');
+                          }}
+                          className="bg-gray-600 hover:bg-gray-700 text-white text-xs px-2 py-1 rounded"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-1">
+                    {getAllTags().map((tag, index) => {
+                      const isFromTicket = selectedTicket?.tags_array?.includes(tag);
+                      const isFromDB = getTagsAsStrings().includes(tag);
+                      
+                      return (
+                        <span 
+                          key={index} 
+                          className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                            isFromTicket && isFromDB 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : isFromTicket 
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-purple-500/20 text-purple-400'
+                          }`}
+                          title={
+                            isFromTicket && isFromDB 
+                              ? 'Тег з тікета та БД' 
+                              : isFromTicket 
+                                ? 'Тег з тікета'
+                                : 'Тег з БД'
+                          }
+                        >
+                          {tag}
+                          {isFromTicket && isFromDB && <Sparkles className="w-2 h-2" />}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Джерело даних */}
+              {selectedTicket.ai_company_answer_data_source_title && (
+                <div className="mt-3">
+                  <span className="text-gray-400 text-sm">Джерело:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white text-sm">{selectedTicket.ai_company_answer_data_source_title}</span>
+                    {selectedTicket.ai_company_answer_data_source_url && (
+                      <a 
+                        href={selectedTicket.ai_company_answer_data_source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-purple-400 hover:text-purple-300"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-2">Стиль відповіді:</label>
-        <div className="grid grid-cols-3 gap-2">
-          {(['official', 'friendly', 'support'] as ResponseStyle[]).map((style) => (
-            <button
-              key={style}
-              onClick={() => setResponseStyle(style)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                responseStyle === style ? 'bg-purple-600 text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              {style === 'official' ? 'Офіційний' : style === 'friendly' ? 'Дружній' : 'Техпідтримка'}
-            </button>
-          ))}
+      
+
+      {/* AI відповідь */}
+      {aiResponse && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-yellow-400" />
+            <label className="text-sm font-medium text-gray-300">AI запропонована відповідь:</label>
+          </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-3">
+            <p className="text-gray-300 text-sm">{aiResponse}</p>
+          </div>
+          <button
+            onClick={handleUseAiResponse}
+            className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-yellow-700 hover:to-orange-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Використати AI відповідь
+          </button>
         </div>
-      </div>
+      )}
 
       <div className="mb-6">
         <button
@@ -69,7 +288,7 @@ export function ResponseConstructor({ selectedComment }: ResponseConstructorProp
           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
         >
           <Zap className="w-4 h-4" />
-          Згенерувати відповідь
+          Згенерувати власну відповідь
         </button>
       </div>
 
@@ -83,22 +302,48 @@ export function ResponseConstructor({ selectedComment }: ResponseConstructorProp
         />
       </div>
 
-      <div className="flex gap-3">
-        <button
-          onClick={copyToClipboard}
-          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-          disabled={!responseText}
-        >
-          <Copy className="w-4 h-4" />
-          Копіювати
-        </button>
-        <button
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-          disabled={!responseText}
-        >
-          <Send className="w-4 h-4" />
-          Відправити
-        </button>
+      <div className="space-y-3">
+        {/* Кнопки копіювання та відправки */}
+        <div className="flex gap-3">
+          <button
+            onClick={copyToClipboard}
+            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={!responseText}
+          >
+            <Copy className="w-4 h-4" />
+            Копіювати
+          </button>
+          <button
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={!responseText}
+          >
+            <Send className="w-4 h-4" />
+            Відправити
+          </button>
+        </div>
+
+        {/* Кнопки управління статусом тікета */}
+        {selectedTicket && (
+          <div className="flex gap-3">
+            {!isTicketClosed ? (
+              <button
+                onClick={handleCloseTicket}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Закрити тікет
+              </button>
+            ) : (
+              <button
+                onClick={handleReopenTicket}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Відкрити тікет
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

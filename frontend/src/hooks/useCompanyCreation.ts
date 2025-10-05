@@ -31,12 +31,13 @@ export const useCompanyCreation = () => {
         role_id: roleId,
       }));
 
-      return { company, userCompany, error: null };
+      return { company, userCompany, companyId: company.id, error: null };
     } catch (error) {
       console.error('Error creating company with user:', error);
       return { 
         company: null, 
         userCompany: null, 
+        companyId: null,
         error: error instanceof Error ? error.message : 'Unknown error' 
       };
     }
