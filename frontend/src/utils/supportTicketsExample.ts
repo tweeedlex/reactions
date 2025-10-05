@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
-import { analyzeSupportTickets, sortTicketsBySentiment, filterTicketsBySentiment } from './supportTicketsAnalysis';
+import supabase from './supabase';
+import { analyzeSupportTickets, sortTicketsBySentiment, filterTicketsBySentiment, type SupportTicketsAnalysis } from './supportTicketsAnalysis';
 import type { SupportTicket } from '@/types';
 
 /**
@@ -92,7 +92,14 @@ export async function fetchAndAnalyzeSupportTickets(companyId: number) {
  * Приклад використання в React компоненті
  */
 export function useSupportTicketsAnalysisExample(companyId: number) {
-  const [analysis, setAnalysis] = useState(null);
+  const [analysis, setAnalysis] = useState<{
+    analysis: SupportTicketsAnalysis;
+    sortedTickets: SupportTicket[];
+    negativeTickets: SupportTicket[];
+    positiveTickets: SupportTicket[];
+    neutralTickets: SupportTicket[];
+    allTickets: SupportTicket[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

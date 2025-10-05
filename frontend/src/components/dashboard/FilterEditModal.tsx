@@ -52,9 +52,7 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   // Використовуємо хук для роботи з ключовими словами
   const { 
     keywords: apiKeywords, 
-    loading: keywordsLoading, 
     createKeyword, 
-    createKeywords,
     deleteKeyword,
     getKeywordsAsStrings 
   } = useCompanyKeywords(currentCompany?.id);

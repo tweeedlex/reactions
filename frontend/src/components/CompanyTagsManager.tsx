@@ -19,7 +19,6 @@ export function CompanyTagsManager({ className = '' }: CompanyTagsManagerProps) 
   
   // Використовуємо хук для роботи з тегами
   const { 
-    tags: companyTags, 
     loading, 
     error,
     createTag, 
