@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.companies_data_sources (
 -- Create msg_ticket_types dictionary table
 CREATE TABLE IF NOT EXISTS dictionaries.msg_ticket_types (
     id SERIAL PRIMARY KEY,
-    --company_id INTEGER NULL REFERENCES public.companies(id) ON DELETE CASCADE, -- Ставим пока NULL = для всех компаний дефолтные типы
+    company_id INTEGER NULL REFERENCES public.companies(id) ON DELETE CASCADE, -- Ставим пока NULL = для всех компаний дефолтные типы
     title TEXT NOT NULL,
     priority_rank INTEGER
 );
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS dictionaries.msg_ticket_types (
 CREATE TABLE IF NOT EXISTS dictionaries.msg_ton_of_voices (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
-    value SMALLINT NOT NULL CHECK (value >= 0 AND value <= 100) -- value from 0 to 100, enforced by CHECK constraint
+    value SMALLINT NOT NULL CHECK (value >= -100 AND value <= 100) -- value from -100 to 100 (represents -1.00 to 1.00 with 2 decimal places)
 );
 
 -- Create indexes for better performance

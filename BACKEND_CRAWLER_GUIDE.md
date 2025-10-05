@@ -7,8 +7,6 @@
 3. **Выполнение краулинга** → сбор данных
 4. **Внесение результатов** → `add_crawling_result` или `add_crawling_results` → сохраняются в `crawler.company_messages`
 5. **Завершение** → статус "Success" или "Failed" (через `add_task_status`)
-6. **Автопродление** → создание новой задачи при "Success" или "Failed"
-7. **Остановка** → статус "Stoped" (через `stop_task`)
 
 ## Важные моменты
 

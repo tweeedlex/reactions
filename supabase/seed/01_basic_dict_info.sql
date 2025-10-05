@@ -7,10 +7,17 @@ INSERT INTO dictionaries.data_sources_types (title) VALUES
     ('Google Maps');
 
 -- Заполнение типов тональности голоса
+-- Шкала от -1.00 (агрессивный) до 1.00 (позитивный), 0.00 - нейтральный
 INSERT INTO dictionaries.msg_ton_of_voices (title, value) VALUES
-    ('Агресивна', 100),
-    ('Нейтральна', 50),
-    ('Позитивна', 0);
+    ('Максимально агресивна', -100),
+    ('Агресивна', -75),
+    ('Негативна', -50),
+    ('Легко негативна', -25),
+    ('Нейтральна', 0),
+    ('Легко позитивна', 25),
+    ('Позитивна', 50),
+    ('Дуже позитивна', 75),
+    ('Максимально позитивна', 100);
 
 -- Заполнение ролей в компаниях
 INSERT INTO dictionaries.system_roles (title) VALUES
@@ -22,6 +29,9 @@ INSERT INTO dictionaries.msg_ticket_types (title, priority_rank) VALUES
     ('Питання', 2),
     ('Рекомендація', 3),
     ('Нейтральна згадка', 4);
+
+    INSERT INTO dictionaries.msg_ticket_types (id, title, priority_rank) VALUES
+    (0,'Необхідно класифікувати', 0);
 
 -- Заполнение типов интервалов
 INSERT INTO dictionaries.inverval_types (title, minutes_interval) VALUES

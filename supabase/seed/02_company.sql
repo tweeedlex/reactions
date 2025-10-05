@@ -11,3 +11,4 @@ insert into public.companies_data_sources (company_id, type_id, inverval_type_id
     (1, 3, 5, 'https://www.google.com/maps/place/ROZETKA/@50.4252823,30.4759037,14.35z/data=!4m10!1m2!2m1!1sgoogle+maps+rozetka!3m6!1s0x40d4cf2f12ea85f1:0x15caad07007fdcda!8m2!3d50.4297367!4d30.4867796!15sChNnb29nbGUgbWFwcyByb3pldGthIgOIAQFaCSIHcm96ZXRrYZIBDWludGVybmV0X3Nob3CqAUkKCy9nLzEyMHp2YjVwEAEqCyIHcm96ZXRrYSgNMh4QASIa1wm9adA793xUrsdiyttFpsRuZyRgO4dJ6koyCxACIgdyb3pldGth4AEA!16s%2Fg%2F11ht1d4z8n?entry=ttu&g_ep=EgoyMDI1MTAwMS4wIKXMDSoASAFQAw%3D%3D', 'вулиця Кудряшова, 20-А, Київ, 02000');
 
 
+    
