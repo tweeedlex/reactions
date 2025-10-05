@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { supportService } from '@/utils/supportService';
+import { analyzeSupportTickets, filterTicketsBySentiment, sortTicketsBySentiment } from '@/utils/supportTicketsAnalysis';
 import type { SupportTicket, Comment } from '@/types';
 import type { RootState } from '@/store';
+import type { SupportTicketsAnalysis } from '@/utils/supportTicketsAnalysis';
 
 export type TicketStatusFilter = 'all' | 'open' | 'closed';
+export type SentimentFilter = 'all' | 'positive' | 'negative' | 'neutral';
 
 interface UseSupportTicketsReturn {
   tickets: SupportTicket[];
@@ -14,8 +17,12 @@ interface UseSupportTicketsReturn {
   refetch: () => Promise<void>;
   statusFilter: TicketStatusFilter;
   setStatusFilter: (filter: TicketStatusFilter) => void;
+  sentimentFilter: SentimentFilter;
+  setSentimentFilter: (filter: SentimentFilter) => void;
   closeTicket: (ticketId: number) => Promise<void>;
   reopenTicket: (ticketId: number) => Promise<void>;
+  analysis: SupportTicketsAnalysis | null;
+  sortedTickets: SupportTicket[];
 }
 
 export function useSupportTickets(): UseSupportTicketsReturn {
@@ -25,6 +32,8 @@ export function useSupportTickets(): UseSupportTicketsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<TicketStatusFilter>('all');
+  const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>('all');
+  const [analysis, setAnalysis] = useState<SupportTicketsAnalysis | null>(null);
 
   // Отримуємо поточну компанію з Redux store
   const currentCompany = useSelector((state: RootState) => state.company.currentCompany);
@@ -42,12 +51,22 @@ export function useSupportTickets(): UseSupportTicketsReturn {
       const fetchedTickets = await supportService.getCompanySupportTickets(currentCompany.id);
       setAllTickets(fetchedTickets);
       
+      // Створюємо аналіз всіх тікетів
+      const ticketsAnalysis = analyzeSupportTickets(fetchedTickets);
+      setAnalysis(ticketsAnalysis);
+      
       // Фільтруємо тікети за статусом
-      const filteredTickets = filterTicketsByStatus(fetchedTickets, statusFilter);
-      setTickets(filteredTickets);
+      const statusFilteredTickets = filterTicketsByStatus(fetchedTickets, statusFilter);
+      
+      // Фільтруємо тікети за тональністю
+      const sentimentFilteredTickets = sentimentFilter === 'all' 
+        ? statusFilteredTickets 
+        : filterTicketsBySentiment(statusFilteredTickets, sentimentFilter);
+      
+      setTickets(sentimentFilteredTickets);
       
       // Конвертуємо tickets в comments для сумісності з існуючими компонентами
-      const convertedComments = filteredTickets.map(ticket => 
+      const convertedComments = sentimentFilteredTickets.map(ticket => 
         supportService.convertTicketToComment(ticket)
       );
       setComments(convertedComments);
@@ -83,16 +102,32 @@ export function useSupportTickets(): UseSupportTicketsReturn {
     }
   };
 
-  // Функція для зміни фільтру
+  // Функція для зміни фільтру статусу
   const handleStatusFilterChange = (filter: TicketStatusFilter) => {
     setStatusFilter(filter);
+    applyFilters(filter, sentimentFilter);
+  };
+
+  // Функція для зміни фільтру тональності
+  const handleSentimentFilterChange = (filter: SentimentFilter) => {
+    setSentimentFilter(filter);
+    applyFilters(statusFilter, filter);
+  };
+
+  // Функція для застосування фільтрів
+  const applyFilters = (statusFilter: TicketStatusFilter, sentimentFilter: SentimentFilter) => {
+    // Фільтруємо за статусом
+    const statusFilteredTickets = filterTicketsByStatus(allTickets, statusFilter);
     
-    // Фільтруємо існуючі тікети
-    const filteredTickets = filterTicketsByStatus(allTickets, filter);
-    setTickets(filteredTickets);
+    // Фільтруємо за тональністю
+    const sentimentFilteredTickets = sentimentFilter === 'all' 
+      ? statusFilteredTickets 
+      : filterTicketsBySentiment(statusFilteredTickets, sentimentFilter);
+    
+    setTickets(sentimentFilteredTickets);
     
     // Конвертуємо в comments
-    const convertedComments = filteredTickets.map(ticket => 
+    const convertedComments = sentimentFilteredTickets.map(ticket => 
       supportService.convertTicketToComment(ticket)
     );
     setComments(convertedComments);
@@ -103,13 +138,7 @@ export function useSupportTickets(): UseSupportTicketsReturn {
     try {
       await supportService.closeTicket(ticketId);
       // Оновлюємо фільтровані тікети
-      const filteredTickets = filterTicketsByStatus(allTickets, statusFilter);
-      setTickets(filteredTickets);
-      
-      const convertedComments = filteredTickets.map(ticket => 
-        supportService.convertTicketToComment(ticket)
-      );
-      setComments(convertedComments);
+      applyFilters(statusFilter, sentimentFilter);
       
     } catch (err) {
       console.error('Error closing ticket:', err);
@@ -122,13 +151,7 @@ export function useSupportTickets(): UseSupportTicketsReturn {
     try {
       await supportService.reopenTicket(ticketId);
       // Оновлюємо фільтровані тікети
-      const filteredTickets = filterTicketsByStatus(allTickets, statusFilter);
-      setTickets(filteredTickets);
-      
-      const convertedComments = filteredTickets.map(ticket => 
-        supportService.convertTicketToComment(ticket)
-      );
-      setComments(convertedComments);
+      applyFilters(statusFilter, sentimentFilter);
       
     } catch (err) {
       console.error('Error reopening ticket:', err);
@@ -140,6 +163,9 @@ export function useSupportTickets(): UseSupportTicketsReturn {
     fetchTickets();
   }, [currentCompany?.id]);
 
+  // Створюємо відсортовані тікети за тональністю
+  const sortedTickets = sortTicketsBySentiment(allTickets);
+
   return {
     tickets,
     comments,
@@ -148,7 +174,11 @@ export function useSupportTickets(): UseSupportTicketsReturn {
     refetch: fetchTickets,
     statusFilter,
     setStatusFilter: handleStatusFilterChange,
+    sentimentFilter,
+    setSentimentFilter: handleSentimentFilterChange,
     closeTicket,
-    reopenTicket
+    reopenTicket,
+    analysis,
+    sortedTickets
   };
 }
