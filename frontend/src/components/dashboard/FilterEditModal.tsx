@@ -25,6 +25,7 @@ const ACTIVE_SOURCES = [
   'App Store',
   'Google Play',
   'Google Maps',
+  'Instagram',
 ];
 
 interface FilterEditModalProps {
