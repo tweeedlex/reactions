@@ -8,7 +8,6 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Users,
   Calendar,
   ArrowLeft,
   TrendingUp,
@@ -21,8 +20,8 @@ import {
   Target,
   FileText,
 } from 'lucide-react';
-import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
-import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
+import { mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
+import { MetricCard, FilterEditModal } from '@/components/dashboard';
 import { AlertCard, KeywordAlerts } from '@/components/support';
 import { CompanyInfo } from '@/components/CompanyInfo';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -32,7 +31,6 @@ import { useSupportTickets } from '@/hooks/useSupportTickets';
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const data = mockDashboardData;
   
   // Хардкоджений баланс токенів
   const tokenBalance = 1000;
@@ -194,7 +192,7 @@ function Dashboard() {
           <MetricCard
             title="Нейтральні тікети"
             value={supportAnalysis ? `${supportAnalysis.sentimentStats.neutral.percentage}%` : '0%'}
-            trend={{ direction: 'stable', value: `${supportAnalysis?.sentimentStats.neutral.count || 0}` }}
+            trend={{ direction: 'up', value: `${supportAnalysis?.sentimentStats.neutral.count || 0}` }}
             icon={Activity}
             gradientFrom="yellow-500"
             gradientTo="orange-500"
@@ -419,23 +417,113 @@ function Dashboard() {
         {/* Daily Trends Chart */}
         <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-white">Динаміка згадок за останні 7 днів</h3>
+            <h3 className="text-xl font-semibold text-white">Динаміка тікетів за останні 7 днів</h3>
             <BarChart3 className="w-5 h-5 text-purple-400" />
           </div>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {data.dailyStats.map((day, index) => (
-              <div key={index} className="flex flex-col items-center gap-2">
-                <div
-                  className="bg-gradient-to-t from-purple-500 to-pink-500 rounded-t w-8 transition-all hover:opacity-80"
-                  style={{
-                    height: `${(day.mentions / Math.max(...data.dailyStats.map((d) => d.mentions))) * 200}px`,
-                  }}
-                ></div>
-                <span className="text-xs text-gray-400">{new Date(day.date).getDate()}</span>
-                <span className="text-xs text-white">{day.mentions}</span>
+          {supportLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-gray-400">Завантаження...</div>
+            </div>
+          ) : supportAnalysis && supportAnalysis.dailyStats.length > 0 ? (
+            <div>
+              {/* Легенда */}
+              <div className="flex items-center justify-center gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Позитивні</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Нейтральні</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span className="text-xs text-gray-400">Негативні</span>
+                </div>
               </div>
-            ))}
-          </div>
+              
+              {/* Графік */}
+              <div className="h-64 flex items-end justify-between gap-2">
+                {supportAnalysis.dailyStats.map((day, index) => {
+                  const maxCount = Math.max(...supportAnalysis.dailyStats.map(d => d.count));
+                  const totalHeight = maxCount > 0 ? (day.count / maxCount) * 180 : 0;
+                  
+                  return (
+                    <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                      {/* Стеки стовпців */}
+                      <div className="relative w-8" style={{ height: `${totalHeight}px` }}>
+                        {day.sentiment.positive > 0 && (
+                          <div
+                            className="absolute bottom-0 w-full bg-green-500 rounded-t transition-all hover:opacity-80"
+                            style={{
+                              height: `${(day.sentiment.positive / day.count) * totalHeight}px`,
+                            }}
+                            title={`Позитивні: ${day.sentiment.positive}`}
+                          ></div>
+                        )}
+                        {day.sentiment.neutral > 0 && (
+                          <div
+                            className="absolute w-full bg-yellow-500 transition-all hover:opacity-80"
+                            style={{
+                              bottom: `${(day.sentiment.positive / day.count) * totalHeight}px`,
+                              height: `${(day.sentiment.neutral / day.count) * totalHeight}px`,
+                            }}
+                            title={`Нейтральні: ${day.sentiment.neutral}`}
+                          ></div>
+                        )}
+                        {day.sentiment.negative > 0 && (
+                          <div
+                            className="absolute w-full bg-red-500 rounded-b transition-all hover:opacity-80"
+                            style={{
+                              bottom: `${((day.sentiment.positive + day.sentiment.neutral) / day.count) * totalHeight}px`,
+                              height: `${(day.sentiment.negative / day.count) * totalHeight}px`,
+                            }}
+                            title={`Негативні: ${day.sentiment.negative}`}
+                          ></div>
+                        )}
+                      </div>
+                      
+                      {/* Підпис дати */}
+                      <span className="text-xs text-gray-400">
+                        {new Date(day.date).toLocaleDateString('uk-UA', { month: 'short', day: 'numeric' })}
+                      </span>
+                      
+                      {/* Підпис кількості */}
+                      <span className="text-xs text-white font-semibold">{day.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Підсумкова статистика */}
+              <div className="mt-4 pt-4 border-t border-slate-600">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold text-green-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.positive, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Позитивних</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-yellow-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.neutral, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Нейтральних</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-red-400">
+                      {supportAnalysis.dailyStats.reduce((sum, day) => sum + day.sentiment.negative, 0)}
+                    </div>
+                    <div className="text-xs text-gray-400">Негативних</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-gray-400">Немає даних за останні 7 днів</div>
+            </div>
+          )}
         </div>
       </div>
 

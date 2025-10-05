@@ -28,6 +28,16 @@ export interface ThemeStats {
   };
 }
 
+export interface DailyTicketStats {
+  date: string;
+  count: number;
+  sentiment: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+}
+
 export interface SupportTicketsAnalysis {
   totalTickets: number;
   sentimentClassification: SentimentClassification;
@@ -39,6 +49,7 @@ export interface SupportTicketsAnalysis {
   ticketTypeStats: TicketTypeStats;
   dataSourceStats: DataSourceStats;
   themeStats: ThemeStats;
+  dailyStats: DailyTicketStats[];
 }
 
 /**
@@ -97,6 +108,45 @@ function calculateCategoryStats(items: string[], total: number): Record<string, 
 }
 
 /**
+ * Створює статистику по днях за останні 7 днів
+ * @param tickets - масив тікетів
+ * @returns масив статистики по днях
+ */
+export function createDailyStats(tickets: SupportTicket[]): DailyTicketStats[] {
+  const last7Days = [];
+  const today = new Date();
+  
+  // Створюємо масив дат за останні 7 днів
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    last7Days.push(date.toISOString().split('T')[0]); // Формат YYYY-MM-DD
+  }
+
+  // Групуємо тікети по датах
+  const dailyStats: DailyTicketStats[] = last7Days.map(date => {
+    const dayTickets = tickets.filter(ticket => {
+      const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
+      return ticketDate === date;
+    });
+
+    const sentiment = {
+      positive: dayTickets.filter(ticket => classifySentiment(ticket.ai_ton_of_voice_value) === 'positive').length,
+      negative: dayTickets.filter(ticket => classifySentiment(ticket.ai_ton_of_voice_value) === 'negative').length,
+      neutral: dayTickets.filter(ticket => classifySentiment(ticket.ai_ton_of_voice_value) === 'neutral').length,
+    };
+
+    return {
+      date,
+      count: dayTickets.length,
+      sentiment
+    };
+  });
+
+  return dailyStats;
+}
+
+/**
  * Повний аналіз тікетів підтримки
  * @param tickets - масив тікетів з v_company_support_tickets
  * @returns детальний аналіз з класифікацією та статистикою
@@ -115,7 +165,8 @@ export function analyzeSupportTickets(tickets: SupportTicket[]): SupportTicketsA
       },
       ticketTypeStats: {},
       dataSourceStats: {},
-      themeStats: {}
+      themeStats: {},
+      dailyStats: []
     };
   }
 
@@ -150,13 +201,17 @@ export function analyzeSupportTickets(tickets: SupportTicket[]): SupportTicketsA
   const themes = tickets.map(ticket => ticket.ai_theme);
   const themeStats = calculateCategoryStats(themes, totalTickets);
 
+  // Статистика по днях за останні 7 днів
+  const dailyStats = createDailyStats(tickets);
+
   return {
     totalTickets,
     sentimentClassification,
     sentimentStats,
     ticketTypeStats,
     dataSourceStats,
-    themeStats
+    themeStats,
+    dailyStats
   };
 }
 
