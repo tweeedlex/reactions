@@ -72,18 +72,21 @@ export const getBrandFilters = () => {
   return null;
 };
 
-export const updateSourceLink = (sourceName: string, url: string): void => {
+export const updateSourceLink = (sourceName: string, url: string, title?: string): void => {
   const data = getUserData();
   if (data) {
     if (!data.brand.sourceLinks) {
       data.brand.sourceLinks = [];
     }
     
-    const existingIndex = data.brand.sourceLinks.findIndex(link => link.name === sourceName);
+    const existingIndex = data.brand.sourceLinks.findIndex(link => link.source === sourceName);
     if (existingIndex >= 0) {
       data.brand.sourceLinks[existingIndex].url = url;
+      if (title) {
+        data.brand.sourceLinks[existingIndex].title = title;
+      }
     } else {
-      data.brand.sourceLinks.push({ name: sourceName, url });
+      data.brand.sourceLinks.push({ source: sourceName, url, title });
     }
     
     saveUserData(data);
@@ -93,7 +96,7 @@ export const updateSourceLink = (sourceName: string, url: string): void => {
 export const removeSourceLink = (sourceName: string): void => {
   const data = getUserData();
   if (data && data.brand.sourceLinks) {
-    data.brand.sourceLinks = data.brand.sourceLinks.filter(link => link.name !== sourceName);
+    data.brand.sourceLinks = data.brand.sourceLinks.filter(link => link.source !== sourceName);
     saveUserData(data);
   }
 };
@@ -101,7 +104,7 @@ export const removeSourceLink = (sourceName: string): void => {
 export const getSourceLink = (sourceName: string): string | null => {
   const data = getUserData();
   if (data?.brand?.sourceLinks) {
-    const link = data.brand.sourceLinks.find(link => link.name === sourceName);
+    const link = data.brand.sourceLinks.find(link => link.source === sourceName);
     return link ? link.url : null;
   }
   return null;

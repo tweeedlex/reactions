@@ -85,8 +85,9 @@ export interface User {
 }
 
 export interface SourceLink {
-  name: string;
+  source: string;
   url: string;
+  title?: string;
 }
 
 export interface BrandSetup {
@@ -162,12 +163,35 @@ export interface UserCompanyWithRole extends UserCompanyWithCompany {
   role: UserRole;
 }
 
+// Data Source Types
+export interface DataSource {
+  id: number;
+  company_id: number;
+  type_id: number;
+  url: string;
+  interval_type_id: number;
+  title: string;
+}
+
+export interface DataSourceWithLinks {
+  id: number;
+  company_id: number;
+  type_id: number;
+  title: string;
+  links: Array<{
+    id: number;
+    url: string;
+    interval_type_id: number;
+  }>;
+}
+
 // Company state for Redux
 export interface CompanyState {
   companies: Company[];
   userCompanies: UserCompanyWithCompany[];
   currentCompany: Company | null;
   currentUserRole: UserRole | null;
+  dataSources: DataSourceWithLinks[];
   loading: boolean;
   error: string | null;
 }

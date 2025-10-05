@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { X, Building2, Tag, Globe, Check, Save, Link, ExternalLink } from 'lucide-react';
-import { getBrandFilters, updateBrandFilters, updateSourceLink, getSourceLink, removeSourceLink } from '@/utils/localStorage';
+import { getBrandFilters, updateBrandFilters, updateSourceLink, removeSourceLink } from '@/utils/localStorage';
 import SetupSourceModal from '@/components/SetupSourceModal';
+import { useAppSelector } from '@/store/hooks';
 import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
-  'Google SERP',
   'App Store',
   'Google Play',
+  'Google Maps',
+  'Google SERP',
   'TrustPilot',
   'Facebook',
   'Instagram',
@@ -15,6 +17,12 @@ const AVAILABLE_SOURCES = [
   'Reddit',
   'Quora',
   'Форуми',
+];
+
+const ACTIVE_SOURCES = [
+  'App Store',
+  'Google Play',
+  'Google Maps',
 ];
 
 interface FilterEditModalProps {
@@ -31,6 +39,10 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   const [sourceLinks, setSourceLinks] = useState<SourceLink[]>([]);
   const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
   const [currentSource, setCurrentSource] = useState<string>('');
+  const [existingLinks, setExistingLinks] = useState<Array<{ id: number | string; url: string; title?: string }>>([]);
+  
+  // Redux state для джерел даних з Supabase
+  const { dataSources } = useAppSelector(state => state.company);
 
   useEffect(() => {
     if (isOpen) {
@@ -56,10 +68,15 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   };
 
   const toggleSource = (source: string) => {
+    // Перевіряємо чи джерело активне
+    if (!ACTIVE_SOURCES.includes(source)) {
+      return;
+    }
+
     if (selectedSources.includes(source)) {
       setSelectedSources(selectedSources.filter((s) => s !== source));
       // Видаляємо посилання при відключенні джерела
-      setSourceLinks(sourceLinks.filter(link => link.name !== source));
+      setSourceLinks(sourceLinks.filter(link => link.source !== source));
       removeSourceLink(source);
     } else {
       setSelectedSources([...selectedSources, source]);
@@ -69,10 +86,31 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
     }
   };
 
+  const handleSourceClick = (source: string) => {
+    // Перевіряємо чи джерело активне
+    if (!ACTIVE_SOURCES.includes(source)) {
+      return;
+    }
+
+    // Знаходимо існуючі посилання для цього джерела
+    const existingLinks = dataSources.find(ds => ds.title === source)?.links || [];
+    const localLinks = sourceLinks.filter(link => link.source === source);
+    
+    // Об'єднуємо локальні та Supabase посилання
+    const allLinks = [
+      ...existingLinks.map(link => ({ id: link.id, url: link.url, title: `${source} - Посилання ${link.id}` })),
+      ...localLinks.map((link, index) => ({ id: `local_${index}`, url: link.url, title: link.title || `${source} - Локальне` }))
+    ];
+
+    setCurrentSource(source);
+    setExistingLinks(allLinks);
+    setIsSourceModalOpen(true);
+  };
+
   const handleSourceLinkSave = (sourceLink: SourceLink) => {
-    updateSourceLink(sourceLink.name, sourceLink.url);
+    updateSourceLink(sourceLink.source, sourceLink.url, sourceLink.title);
     setSourceLinks(prev => {
-      const existingIndex = prev.findIndex(link => link.name === sourceLink.name);
+      const existingIndex = prev.findIndex(link => link.source === sourceLink.source);
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = sourceLink;
@@ -80,17 +118,24 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
       }
       return [...prev, sourceLink];
     });
+    setIsSourceModalOpen(false);
+    setExistingLinks([]);
   };
 
   const handleEditSourceLink = (sourceName: string) => {
+    // Перевіряємо чи джерело активне
+    if (!ACTIVE_SOURCES.includes(sourceName)) {
+      return;
+    }
+
     setCurrentSource(sourceName);
     setIsSourceModalOpen(true);
   };
 
   const handleSave = () => {
-    // Джерело вважається підключеним тільки якщо є посилання
+    // Джерело вважається підключеним тільки якщо є посилання і воно активне
     const connectedSources = selectedSources.filter(source => 
-      sourceLinks.some(link => link.name === source && link.url.trim())
+      ACTIVE_SOURCES.includes(source) && sourceLinks.some(link => link.source === source && link.url.trim())
     );
     
     if (brandName.trim() && keywords.length > 0 && connectedSources.length > 0) {
@@ -101,7 +146,7 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   };
 
   const connectedSources = selectedSources.filter(source => 
-    sourceLinks.some(link => link.name === source && link.url.trim())
+    ACTIVE_SOURCES.includes(source) && sourceLinks.some(link => link.source === source && link.url.trim())
   );
 
   if (!isOpen) return null;
@@ -207,35 +252,48 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {AVAILABLE_SOURCES.map((source) => {
+                const isActive = ACTIVE_SOURCES.includes(source);
                 const isSelected = selectedSources.includes(source);
-                const hasLink = sourceLinks.some(link => link.name === source && link.url.trim());
-                const isConnected = isSelected && hasLink;
+                const hasLink = sourceLinks.some(link => link.source === source && link.url.trim());
+                // Перевіряємо чи є джерело в Supabase
+                const hasSupabaseData = dataSources.some(ds => ds.title === source);
+                const isConnected = isSelected && (hasLink || hasSupabaseData);
                 
                 return (
                   <div key={source} className="relative">
+                    {!isActive && (
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <span className="bg-gray-600 text-gray-300 px-2 py-1 rounded-full text-xs font-medium">
+                          Soon
+                        </span>
+                      </div>
+                    )}
                     <button
-                      onClick={() => toggleSource(source)}
+                      onClick={() => isActive ? (isConnected ? handleSourceClick(source) : toggleSource(source)) : undefined}
+                      disabled={!isActive}
                       className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                        isConnected
-                          ? 'bg-green-500/20 border-green-500 text-white'
+                        !isActive
+                          ? 'bg-slate-800/50 border-slate-700 text-gray-500 cursor-not-allowed opacity-60'
+                          : isConnected
+                          ? 'bg-green-500/20 border-green-500 text-white hover:bg-green-500/30'
                           : isSelected
-                          ? 'bg-orange-500/20 border-orange-500 text-white'
+                          ? 'bg-orange-500/20 border-orange-500 text-white hover:bg-orange-500/30'
                           : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-purple-500/50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{source}</span>
-                        {isConnected && <Check className="w-4 h-4 text-green-400" />}
-                        {isSelected && !hasLink && <Link className="w-4 h-4 text-orange-400" />}
+                        {isActive && isConnected && <Check className="w-4 h-4 text-green-400" />}
+                        {isActive && isSelected && !hasLink && <Link className="w-4 h-4 text-orange-400" />}
                       </div>
-                      {isSelected && !hasLink && (
+                      {isActive && isSelected && !hasLink && (
                         <p className="text-xs text-orange-300 mt-1">
                           Потрібно ввести посилання
                         </p>
                       )}
                     </button>
                     
-                    {isConnected && (
+                    {isActive && isConnected && (
                       <button
                         onClick={() => handleEditSourceLink(source)}
                         className="absolute top-1 right-1 p-1 bg-slate-700/80 hover:bg-slate-600 rounded text-gray-300 hover:text-white transition-colors"
@@ -286,13 +344,16 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
       </div>
 
       {/* Source Setup Modal */}
-      <SetupSourceModal
-        isOpen={isSourceModalOpen}
-        onClose={() => setIsSourceModalOpen(false)}
-        onSave={handleSourceLinkSave}
-        sourceName={currentSource}
-        existingUrl={getSourceLink(currentSource) || undefined}
-      />
+        <SetupSourceModal
+          isOpen={isSourceModalOpen}
+          onClose={() => {
+            setIsSourceModalOpen(false);
+            setExistingLinks([]);
+          }}
+          onSave={handleSourceLinkSave}
+          sourceName={currentSource}
+          existingLinks={existingLinks}
+        />
     </div>
   );
 }

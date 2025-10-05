@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import supabase from '@/utils/supabase';
-import type { Company, UserCompanyWithCompany, CompanyState, UserRole } from '@/types';
+import type { Company, UserCompanyWithCompany, CompanyState, UserRole, DataSourceWithLinks } from '@/types';
 import { companyService } from '@/utils/companyService';
+import { dataSourceService } from '@/utils/dataSourceService';
 
 // Async thunks
 export const fetchUserCompanies = createAsyncThunk(
@@ -63,11 +64,56 @@ export const createUserCompany = createAsyncThunk(
   }
 );
 
+// Data Sources thunks
+export const fetchCompanyDataSources = createAsyncThunk(
+  'company/fetchCompanyDataSources',
+  async (companyId: number) => {
+    return await dataSourceService.getCompanyDataSources(companyId);
+  }
+);
+
+export const createDataSource = createAsyncThunk(
+  'company/createDataSource',
+  async (data: { companyId: number; typeId: number; title: string; urls: string[]; intervalTypeId?: number }) => {
+    return await dataSourceService.createDataSource(
+      data.companyId,
+      data.typeId,
+      data.title,
+      data.urls,
+      data.intervalTypeId
+    );
+  }
+);
+
+export const updateDataSource = createAsyncThunk(
+  'company/updateDataSource',
+  async (data: { sourceId: number; updates: Partial<Pick<DataSourceWithLinks, 'title'>> }) => {
+    return await dataSourceService.updateDataSource(data.sourceId, data.updates);
+  }
+);
+
+export const deleteDataSource = createAsyncThunk(
+  'company/deleteDataSource',
+  async (sourceId: number) => {
+    await dataSourceService.deleteDataSource(sourceId);
+    return sourceId;
+  }
+);
+
+export const deleteDataSourceGroup = createAsyncThunk(
+  'company/deleteDataSourceGroup',
+  async (data: { companyId: number; title: string; typeId: number }) => {
+    await dataSourceService.deleteDataSourceGroup(data.companyId, data.title, data.typeId);
+    return { companyId: data.companyId, title: data.title, typeId: data.typeId };
+  }
+);
+
 const initialState: CompanyState = {
   companies: [],
   userCompanies: [],
   currentCompany: null,
   currentUserRole: null,
+  dataSources: [],
   loading: false,
   error: null,
 };
@@ -90,6 +136,7 @@ const companySlice = createSlice({
       state.userCompanies = [];
       state.currentCompany = null;
       state.currentUserRole = null;
+      state.dataSources = [];
       state.error = null;
     },
   },
@@ -153,6 +200,54 @@ const companySlice = createSlice({
       .addCase(createUserCompany.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to create user company';
+      })
+      // Fetch company data sources
+      .addCase(fetchCompanyDataSources.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCompanyDataSources.fulfilled, (state, action) => {
+        state.loading = false;
+        state.dataSources = action.payload;
+      })
+      .addCase(fetchCompanyDataSources.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch data sources';
+      })
+      // Create data source
+      .addCase(createDataSource.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createDataSource.fulfilled, (state) => {
+        state.loading = false;
+        // Перезавантажуємо джерела даних після створення
+        // Це буде зроблено в компоненті
+      })
+      .addCase(createDataSource.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to create data source';
+      })
+      // Delete data source
+      .addCase(deleteDataSource.fulfilled, (state, action) => {
+        state.dataSources = state.dataSources.map(source => ({
+          ...source,
+          links: source.links.filter(link => link.id !== action.payload)
+        })).filter(source => source.links.length > 0);
+      })
+      .addCase(deleteDataSource.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to delete data source';
+      })
+      // Delete data source group
+      .addCase(deleteDataSourceGroup.fulfilled, (state, action) => {
+        state.dataSources = state.dataSources.filter(source => 
+          !(source.company_id === action.payload.companyId && 
+            source.title === action.payload.title && 
+            source.type_id === action.payload.typeId)
+        );
+      })
+      .addCase(deleteDataSourceGroup.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to delete data source group';
       });
   },
 });

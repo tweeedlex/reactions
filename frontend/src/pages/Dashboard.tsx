@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
@@ -16,11 +16,14 @@ import {
   Settings,
   Crown,
   Coins,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { mockDashboardData, mockAlerts, mockKeywordAlerts } from '@/utils/mockData';
 import { MetricCard, PriorityIssueCard, FilterEditModal } from '@/components/dashboard';
 import { AlertCard, KeywordAlerts } from '@/components/support';
 import { CompanyInfo } from '@/components/CompanyInfo';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchCompanyDataSources } from '@/store/slices/companySlice';
 
 function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
@@ -29,6 +32,17 @@ function Dashboard() {
   
   // Хардкоджений баланс токенів
   const tokenBalance = 1000;
+
+  // Redux state
+  const dispatch = useAppDispatch();
+  const { currentCompany, dataSources } = useAppSelector(state => state.company);
+
+  // Завантажуємо джерела даних при завантаженні компонента
+  useEffect(() => {
+    if (currentCompany) {
+      dispatch(fetchCompanyDataSources(currentCompany.id));
+    }
+  }, [currentCompany, dispatch]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -109,6 +123,40 @@ function Dashboard() {
         <div className="mb-6">
           <CompanyInfo />
         </div>
+
+        {/* Data Sources */}
+        {dataSources.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-purple-500/20">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-purple-400" />
+                Джерела даних
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dataSources.map((source) => (
+                  <div key={`${source.title}-${source.type_id}`} className="bg-slate-700/50 rounded-lg p-4">
+                    <h4 className="font-medium text-white mb-2">{source.title}</h4>
+                    <div className="space-y-1">
+                      {source.links.map((link) => (
+                        <div key={link.id} className="flex items-center gap-2 text-sm text-gray-300">
+                          <LinkIcon className="w-3 h-3 text-purple-400" />
+                          <a 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-purple-400 transition-colors truncate"
+                          >
+                            {link.url}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

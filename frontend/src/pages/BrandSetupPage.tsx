@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Building2, Tag, Globe, Check, ArrowRight, ArrowLeft, Link, ExternalLink } from 'lucide-react';
-import { getUserData, saveUserData, updateSourceLink, getSourceLink, saveCompanyStatus } from '@/utils/localStorage';
+import { getUserData, saveUserData, updateSourceLink, saveCompanyStatus } from '@/utils/localStorage';
 import SetupSourceModal from '@/components/SetupSourceModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyCreation } from '@/hooks/useCompanyCreation';
+import { useAppDispatch } from '@/store/hooks';
+import { createDataSource } from '@/store/slices/companySlice';
 import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
@@ -24,6 +26,7 @@ function BrandSetupPage() {
   const navigate = useNavigate();
   const { user, refreshCompanyStatus } = useAuth();
   const { createCompanyWithUser } = useCompanyCreation();
+  const dispatch = useAppDispatch();
   const [step, setStep] = useState(1);
   const [brandName, setBrandName] = useState('');
   const [siteUrl, setSiteUrl] = useState('');
@@ -50,7 +53,7 @@ function BrandSetupPage() {
     if (selectedSources.includes(source)) {
       setSelectedSources(selectedSources.filter((s) => s !== source));
       // Видаляємо посилання при відключенні джерела
-      setSourceLinks(sourceLinks.filter(link => link.name !== source));
+      setSourceLinks(sourceLinks.filter(link => link.source !== source));
     } else {
       setSelectedSources([...selectedSources, source]);
       // Відкриваємо модальне вікно для введення посилання
@@ -60,9 +63,9 @@ function BrandSetupPage() {
   };
 
   const handleSourceLinkSave = (sourceLink: SourceLink) => {
-    updateSourceLink(sourceLink.name, sourceLink.url);
+    updateSourceLink(sourceLink.source, sourceLink.url);
     setSourceLinks(prev => {
-      const existingIndex = prev.findIndex(link => link.name === sourceLink.name);
+      const existingIndex = prev.findIndex(link => link.source === sourceLink.source);
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = sourceLink;
@@ -87,7 +90,7 @@ function BrandSetupPage() {
 
     try {
       // Створюємо компанію в Supabase
-      const { error } = await createCompanyWithUser(user, {
+      const { error, companyId } = await createCompanyWithUser(user, {
         title: brandName,
         site_url: siteUrl.trim() || '', // Використовуємо введене посилання або порожній рядок
       });
@@ -95,6 +98,36 @@ function BrandSetupPage() {
       if (error) {
         console.error('Error creating company:', error);
         // Продовжуємо з локальним збереженням навіть якщо є помилка
+      }
+
+      // Зберігаємо джерела даних в Supabase
+      if (companyId && sourceLinks.length > 0) {
+        try {
+          // Групуємо посилання за джерелом
+          const sourcesMap = new Map<string, string[]>();
+          
+          sourceLinks.forEach(link => {
+            if (!sourcesMap.has(link.source)) {
+              sourcesMap.set(link.source, []);
+            }
+            sourcesMap.get(link.source)!.push(link.url);
+          });
+
+          // Створюємо джерела даних
+          for (const [sourceTitle, urls] of sourcesMap) {
+            const typeId = AVAILABLE_SOURCES.indexOf(sourceTitle) + 1; // type_id від 1
+            await dispatch(createDataSource({
+              companyId,
+              typeId: typeId || 1,
+              title: sourceTitle,
+              urls,
+              intervalTypeId: 1, // За замовчуванням
+            })).unwrap();
+          }
+        } catch (error) {
+          console.error('Error saving data sources:', error);
+          // Продовжуємо навіть якщо є помилка з джерелами
+        }
       }
 
       // Зберігаємо дані локально
@@ -150,7 +183,7 @@ function BrandSetupPage() {
   const canProceedStep2 = keywords.length > 0;
   // Джерело вважається підключеним тільки якщо є посилання
   const connectedSources = selectedSources.filter(source => 
-    sourceLinks.some(link => link.name === source && link.url.trim())
+    sourceLinks.some(link => link.source === source && link.url.trim())
   );
   const canComplete = connectedSources.length > 0;
 
@@ -329,7 +362,7 @@ function BrandSetupPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {AVAILABLE_SOURCES.map((source) => {
                     const isSelected = selectedSources.includes(source);
-                    const hasLink = sourceLinks.some(link => link.name === source && link.url.trim());
+                    const hasLink = sourceLinks.some(link => link.source === source && link.url.trim());
                     const isConnected = isSelected && hasLink;
                     
                     return (
@@ -425,13 +458,12 @@ function BrandSetupPage() {
       </div>
 
       {/* Source Setup Modal */}
-      <SetupSourceModal
-        isOpen={isSourceModalOpen}
-        onClose={() => setIsSourceModalOpen(false)}
-        onSave={handleSourceLinkSave}
-        sourceName={currentSource}
-        existingUrl={getSourceLink(currentSource) || undefined}
-      />
+        <SetupSourceModal
+          isOpen={isSourceModalOpen}
+          onClose={() => setIsSourceModalOpen(false)}
+          onSave={handleSourceLinkSave}
+          sourceName={currentSource}
+        />
     </div>
   );
 }
