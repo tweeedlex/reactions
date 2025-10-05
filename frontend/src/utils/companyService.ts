@@ -129,4 +129,21 @@ export const companyService = {
       return null;
     }
   },
+
+  // Оновити компанію
+  async updateCompany(id: number, updates: Partial<Pick<Company, 'title' | 'site_url'>>): Promise<Company> {
+    const { data: company, error } = await supabase
+      .from('companies')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating company:', error);
+      throw error;
+    }
+
+    return company as Company;
+  },
 };

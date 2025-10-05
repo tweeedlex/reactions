@@ -207,6 +207,25 @@ export interface SupportTicket {
   company_id: number;
 }
 
+// Company Tag types
+export interface CompanyTag {
+  id: number;
+  company_id: number;
+  title: string;
+  attention_rank: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Company Keyword types
+export interface CompanyKeyword {
+  id: number;
+  company_id: number;
+  keyword: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Company state for Redux
 export interface CompanyState {
   companies: Company[];
@@ -214,6 +233,8 @@ export interface CompanyState {
   currentCompany: Company | null;
   currentUserRole: UserRole | null;
   dataSources: DataSourceWithLinks[];
+  companyTags: CompanyTag[];
+  companyKeywords: CompanyKeyword[];
   loading: boolean;
   error: string | null;
 }

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink, X, RotateCcw } from 'lucide-react';
+import { Zap, Copy, Send, MessageSquare, Sparkles, ExternalLink, X, RotateCcw, Plus, Tag } from 'lucide-react';
 import type { Comment, SupportTicket } from '@/types';
 import { generateResponse } from '@/utils/responseTemplates';
 import { supportService } from '@/utils/supportService';
+import { useCompanyTags } from '@/hooks/useCompanyTags';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 
 interface ResponseConstructorProps {
   selectedComment: Comment | null;
@@ -19,6 +22,18 @@ export function ResponseConstructor({
 }: ResponseConstructorProps) {
   const [responseText, setResponseText] = useState('');
   const [aiResponse, setAiResponse] = useState<string>('');
+  const [newTagTitle, setNewTagTitle] = useState('');
+  const [showAddTag, setShowAddTag] = useState(false);
+
+  // Отримуємо поточну компанію з Redux
+  const currentCompany = useSelector((state: RootState) => state.company.currentCompany);
+  
+  // Використовуємо хук для роботи з тегами
+  const { 
+    loading: tagsLoading, 
+    createTag, 
+    getTagsAsStrings 
+  } = useCompanyTags(currentCompany?.id);
 
   // Завантажуємо AI відповідь при виборі тікета
   useEffect(() => {
@@ -63,6 +78,29 @@ export function ResponseConstructor({
     if (selectedTicket && onReopenTicket) {
       await onReopenTicket(selectedTicket.id);
     }
+  };
+
+  // Обробник для створення нового тегу
+  const handleCreateTag = async () => {
+    if (newTagTitle.trim() && currentCompany) {
+      try {
+        await createTag(newTagTitle.trim());
+        setNewTagTitle('');
+        setShowAddTag(false);
+      } catch (error) {
+        console.error('Error creating tag:', error);
+      }
+    }
+  };
+
+  // Отримуємо всі теги (з тікета + з БД)
+  const getAllTags = (): string[] => {
+    const ticketTags = selectedTicket?.tags_array || [];
+    const dbTags = getTagsAsStrings();
+    
+    // Об'єднуємо та видаляємо дублікати
+    const allTags = [...new Set([...ticketTags, ...dbTags])];
+    return allTags;
   };
 
   if (!selectedComment) {
@@ -120,15 +158,80 @@ export function ResponseConstructor({
               </div>
               
               {/* Теги */}
-              {selectedTicket.tags_array && selectedTicket.tags_array.length > 0 && (
+              {getAllTags().length > 0 && (
                 <div className="mt-3">
-                  <span className="text-gray-400 text-sm">Теги:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedTicket.tags_array.map((tag, index) => (
-                      <span key={index} className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-400 text-sm">Теги:</span>
+                    <button
+                      onClick={() => setShowAddTag(!showAddTag)}
+                      className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Додати тег
+                    </button>
+                  </div>
+                  
+                  {/* Форма додавання тегу */}
+                  {showAddTag && (
+                    <div className="mb-2 p-2 bg-slate-600/50 rounded-lg">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newTagTitle}
+                          onChange={(e) => setNewTagTitle(e.target.value)}
+                          placeholder="Назва тегу"
+                          className="flex-1 bg-slate-700 text-white text-xs px-2 py-1 rounded border border-gray-600 focus:border-purple-500 focus:outline-none"
+                          onKeyPress={(e) => e.key === 'Enter' && handleCreateTag()}
+                        />
+                        <button
+                          onClick={handleCreateTag}
+                          disabled={!newTagTitle.trim() || tagsLoading}
+                          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                        >
+                          <Tag className="w-3 h-3" />
+                          {tagsLoading ? '...' : 'Додати'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAddTag(false);
+                            setNewTagTitle('');
+                          }}
+                          className="bg-gray-600 hover:bg-gray-700 text-white text-xs px-2 py-1 rounded"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-1">
+                    {getAllTags().map((tag, index) => {
+                      const isFromTicket = selectedTicket?.tags_array?.includes(tag);
+                      const isFromDB = getTagsAsStrings().includes(tag);
+                      
+                      return (
+                        <span 
+                          key={index} 
+                          className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                            isFromTicket && isFromDB 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : isFromTicket 
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-purple-500/20 text-purple-400'
+                          }`}
+                          title={
+                            isFromTicket && isFromDB 
+                              ? 'Тег з тікета та БД' 
+                              : isFromTicket 
+                                ? 'Тег з тікета'
+                                : 'Тег з БД'
+                          }
+                        >
+                          {tag}
+                          {isFromTicket && isFromDB && <Sparkles className="w-2 h-2" />}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

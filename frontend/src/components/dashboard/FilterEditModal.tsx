@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { X, Building2, Tag, Globe, Check, Save, Link, ExternalLink } from 'lucide-react';
 import { getBrandFilters, updateBrandFilters, updateSourceLink, removeSourceLink } from '@/utils/localStorage';
 import SetupSourceModal from '@/components/SetupSourceModal';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { useCompanyKeywords } from '@/hooks/useCompanyKeywords';
+import { updateCompany } from '@/store/slices/companySlice';
 import type { SourceLink } from '@/types';
 
 const AVAILABLE_SOURCES = [
@@ -41,30 +43,61 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
   const [currentSource, setCurrentSource] = useState<string>('');
   const [existingLinks, setExistingLinks] = useState<Array<{ id: number | string; url: string; title?: string }>>([]);
   
+  const dispatch = useAppDispatch();
+  
   // Redux state для джерел даних з Supabase
-  const { dataSources } = useAppSelector(state => state.company);
+  const { dataSources, currentCompany } = useAppSelector(state => state.company);
+  
+  // Використовуємо хук для роботи з ключовими словами
+  const { 
+    keywords: apiKeywords, 
+    loading: keywordsLoading, 
+    createKeyword, 
+    createKeywords,
+    deleteKeyword,
+    getKeywordsAsStrings 
+  } = useCompanyKeywords(currentCompany?.id);
 
   useEffect(() => {
     if (isOpen) {
+      // Завантажуємо дані з API замість localStorage
+      if (currentCompany) {
+        setBrandName(currentCompany.title);
+        setKeywords(getKeywordsAsStrings());
+      }
+      
+      // Залишаємо джерела з localStorage для сумісності
       const filters = getBrandFilters();
       if (filters) {
-        setBrandName(filters.brandName);
-        setKeywords(filters.keywords);
         setSelectedSources(filters.sources);
         setSourceLinks(filters.sourceLinks || []);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, currentCompany, apiKeywords]);
 
-  const handleAddKeyword = () => {
+  const handleAddKeyword = async () => {
     if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
-      setKeywords([...keywords, keywordInput.trim()]);
-      setKeywordInput('');
+      try {
+        await createKeyword(keywordInput.trim());
+        setKeywords([...keywords, keywordInput.trim()]);
+        setKeywordInput('');
+      } catch (error) {
+        console.error('Error creating keyword:', error);
+      }
     }
   };
 
-  const handleRemoveKeyword = (keyword: string) => {
-    setKeywords(keywords.filter((k) => k !== keyword));
+  const handleRemoveKeyword = async (keyword: string) => {
+    try {
+      // Знаходимо ID ключового слова в API
+      const apiKeyword = apiKeywords.find(k => k.keyword === keyword);
+      if (apiKeyword) {
+        await deleteKeyword(apiKeyword.id);
+      }
+      setKeywords(keywords.filter((k) => k !== keyword));
+    } catch (error) {
+      console.error('Error deleting keyword:', error);
+    }
   };
 
   const toggleSource = (source: string) => {
@@ -132,16 +165,30 @@ function FilterEditModal({ isOpen, onClose, onSave }: FilterEditModalProps) {
     setIsSourceModalOpen(true);
   };
 
-  const handleSave = () => {
-    // Джерело вважається підключеним тільки якщо є посилання і воно активне
-    const connectedSources = selectedSources.filter(source => 
-      ACTIVE_SOURCES.includes(source) && sourceLinks.some(link => link.source === source && link.url.trim())
-    );
-    
-    if (brandName.trim() && keywords.length > 0 && connectedSources.length > 0) {
-      updateBrandFilters(brandName, keywords, selectedSources, sourceLinks);
-      onSave?.();
-      onClose();
+  const handleSave = async () => {
+    try {
+      // Джерело вважається підключеним тільки якщо є посилання і воно активне
+      const connectedSources = selectedSources.filter(source => 
+        ACTIVE_SOURCES.includes(source) && sourceLinks.some(link => link.source === source && link.url.trim())
+      );
+      
+      if (brandName.trim() && keywords.length > 0 && connectedSources.length > 0) {
+        // Оновлюємо назву компанії через API
+        if (currentCompany && currentCompany.title !== brandName.trim()) {
+          await dispatch(updateCompany({ 
+            id: currentCompany.id, 
+            updates: { title: brandName.trim() } 
+          }) as any);
+        }
+        
+        // Оновлюємо localStorage для джерел (для сумісності)
+        updateBrandFilters(brandName, keywords, selectedSources, sourceLinks);
+        
+        onSave?.();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error saving filters:', error);
     }
   };
 
