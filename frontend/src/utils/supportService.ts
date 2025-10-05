@@ -104,8 +104,8 @@ export class SupportService {
    * Конвертувати SupportTicket в Comment для сумісності з існуючими компонентами
    */
   static convertTicketToComment(ticket: SupportTicket): import('@/types').Comment {
-    // Визначаємо платформу на основі типу тікета
-    const platform = this.getPlatformFromTicketType(ticket.ticket_type_title);
+    // Визначаємо платформу на основі джерела даних або типу тікета
+    const platform = this.getPlatformFromTicketType(ticket.ticket_type_title, ticket.ai_company_answer_data_source_title);
     
     // Визначаємо sentiment на основі тональності
     const sentiment = this.getSentimentFromTone(ticket.ai_ton_of_voice_value);
@@ -137,9 +137,15 @@ export class SupportService {
   }
 
   /**
-   * Визначити платформу на основі типу тікета
+   * Визначити платформу на основі типу тікета або джерела даних
    */
-  private static getPlatformFromTicketType(ticketType: string): string {
+  private static getPlatformFromTicketType(ticketType: string, dataSourceTitle?: string): string {
+    // Якщо є назва джерела даних, використовуємо її
+    if (dataSourceTitle && dataSourceTitle.trim()) {
+      return dataSourceTitle.trim();
+    }
+
+    // Інакше використовуємо мапінг типів
     const platformMap: Record<string, string> = {
       'Facebook': 'Facebook',
       'Instagram': 'Instagram',
@@ -204,17 +210,26 @@ export class SupportService {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffHours < 1) {
+    if (diffMinutes < 1) {
       return 'Щойно';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} хв тому`;
     } else if (diffHours < 24) {
-      return `${diffHours} годин тому`;
+      return `${diffHours} год тому`;
     } else if (diffDays < 7) {
-      return `${diffDays} днів тому`;
+      return `${diffDays} дн тому`;
     } else {
-      return date.toLocaleDateString('uk-UA');
+      return date.toLocaleDateString('uk-UA', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     }
   }
 }
